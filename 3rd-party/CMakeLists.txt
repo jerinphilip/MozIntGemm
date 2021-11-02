@@ -1,0 +1,11 @@
+add_subdirectory(intgemm EXCLUDE_FROM_ALL)
+add_subdirectory(ruy EXCLUDE_FROM_ALL)
+
+# Why? cpuinfo... :-|
+set(CPUINFO_BUILD_MOCK_TESTS OFF)
+set(CPUINFO_BUILD_BENCHMARKS OFF)
+set(CPUINFO_BUILD_PKG_CONFIG OFF)
+set(CPUINFO_BUILD_UNIT_TESTS OFF)
+set(CPUINFO_BUILD_TOOLS OFF)
+
+add_subdirectory(cpuinfo EXCLUDE_FROM_ALL)
