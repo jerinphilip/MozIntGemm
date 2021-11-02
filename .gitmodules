@@ -1,6 +1,6 @@
 [submodule "3rd-party/intgemm"]
 	path = 3rd-party/intgemm
-	url = git@github.com:jerinphilip/intgemm.git
+	url = https://github.com/jerinphilip/intgemm.git
 [submodule "3rd-party/ruy"]
 	path = 3rd-party/ruy
 	url = https://github.com/google/ruy
