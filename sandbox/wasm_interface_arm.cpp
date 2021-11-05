@@ -1,4 +1,5 @@
 #include "3rd_party/wasm_intgemm/wasm_intgemm_interface.h"
+#include "ruy/ruy.h"
 
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {}
