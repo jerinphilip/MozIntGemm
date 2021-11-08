@@ -6,10 +6,10 @@ using Index = uint32_t;
 
 namespace pg {
 namespace Ruy {
-#include "ffox_intgemm.inl"
+#include "firefox_interface.inl"
 }
 
 namespace Intgemm {
-#include "ffox_intgemm.inl"
+#include "firefox_interface.inl"
 }
 } // namespace pg

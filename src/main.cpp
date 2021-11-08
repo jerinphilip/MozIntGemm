@@ -1,4 +1,4 @@
-#include "ffox_intgemm.h"
+#include "firefox_interface.h"
 #include <iostream>
 #include <random>
 

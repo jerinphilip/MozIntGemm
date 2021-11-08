@@ -7,7 +7,7 @@
  */
 
 #include "3rd-party/intgemm/intgemm/intgemm.h"
-#include "ffox_intgemm.h"
+#include "firefox_interface.h"
 #include <iostream>
 
 namespace pg::Intgemm {

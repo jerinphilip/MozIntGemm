@@ -15,4 +15,4 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(3rd-party)
-add_subdirectory(sandbox)
+add_subdirectory(src)

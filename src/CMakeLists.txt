@@ -1,5 +1,5 @@
 
-add_library(bridge STATIC ruy_impl.cpp intgemm_impl.cpp)
+add_library(bridge STATIC impl_ruy.cpp impl_intgemm.cpp)
 target_link_libraries(bridge ruy intgemm)
 target_include_directories(bridge PRIVATE ${CMAKE_SOURCE_DIR})
 
