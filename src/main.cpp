@@ -64,9 +64,10 @@ int main(int argc, char **argv) {
   std::cout << M << " " << N << " " << P << "\n";
 
   // Do some stuff to get stuff rounded to multiples of 8
-  N = ((N / 8) + 1) * 8;
-  M = ((M / 8) + 1) * 8;
-  P = ((P / 8) + 1) * 8;
+  const size_t _WIDTH = 64;
+  N = ((N / _WIDTH) + 1) * _WIDTH;
+  M = ((M / _WIDTH) + 1) * _WIDTH;
+  P = ((P / _WIDTH) + 1) * _WIDTH;
 
   Matrix<int8_t> A(M, N), B(N, P);
 
@@ -88,14 +89,6 @@ int main(int argc, char **argv) {
   const float *bias_prepared = bias.data();
   float *output;
 
-  output = ruyProduct.data();
-  pg::Ruy::int8MultiplyAndAddBias(
-      A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
-      /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
-      output);
-
-  std::cout << "Ruy A*B : \n" << ruyProduct;
-
   output = intgemmProduct.data();
   pg::Intgemm::int8MultiplyAndAddBias(
       A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
@@ -103,5 +96,13 @@ int main(int argc, char **argv) {
       output);
 
   std::cout << "Intgemm A*B : \n" << intgemmProduct;
+
+  output = ruyProduct.data();
+  pg::Ruy::int8MultiplyAndAddBias(
+      A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
+      /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
+      output);
+
+  std::cout << "Ruy A*B : \n" << ruyProduct;
   return 0;
 }
