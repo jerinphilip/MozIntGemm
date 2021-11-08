@@ -1,4 +1,4 @@
-#include "3rd-party/wasm_intgemm/wasm_intgemm_interface.h"
+#include "ffox_intgemm.h"
 #include "ruy/ruy.h"
 #include <memory>
 
@@ -9,10 +9,21 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
   // Dumb quantize we will improve this eventually.
   const Index size = rows * width;
   for (size_t i = 0; i < size; i++) {
-    output[i] = static_cast<int>(input[i] * scale - zero_point);
+    output[i] = static_cast<int8_t>(input[i] * scale - zero_point);
   };
 }
 
+// Unquantizes int32_t accumulated output from int8_t multiplies, corrects for
+// any shifts and writes result to output.
+void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
+                Index cols, float *output) {
+
+  const Index size = rows * cols;
+  float unquant_multiplier = 1.0f / (scale * scale);
+  for (size_t i = 0; i < size; i++) {
+    output[i] = static_cast<float>(input[i] * unquant_multiplier) + zero_point;
+  }
+}
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
   quantize(input_B, scale, zero_point, width, cols_B, output);
@@ -41,6 +52,13 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
                             const float *input_bias_prepared, Index rows_A,
                             Index width, Index cols_B, float *output) {
 
+  // It is expected that somehow we have managed to call all prepare by the time
+  // we are here, with inputs (prepared) in int8_t. All that's left to do is use
+  // ruy for multiply and then start with the reverse ops to get to fp32.
+
+  // Use ruy to multiply.
+  // The following is adapted from
+  // https://github.com/google/ruy/blob/878283640de7946a43053e8ebf4f15114fbc9156/example/example.cc#L129-L152
   ruy::Context context;
   ruy::Matrix<std::int8_t> lhs;
   ruy::MakeSimpleLayout(rows_A, width, ruy::Order::kRowMajor,
@@ -62,9 +80,11 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MulParams<std::int32_t, std::int32_t> mul_params;
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
-  // Convert to float
+  // Convert to float (this is done through unquantize for now)
+  unquantize(dst_data.get(), scale_A, zero_point_A, rows_A, cols_B, output);
 
-  // Unquantize is required
+  // TODO(jerinphilip) There's some bias writing left.
+  //
 }
 
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,
