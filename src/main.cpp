@@ -67,21 +67,35 @@ int main(int argc, char **argv) {
   A.fill(gen64);
   B.fill(gen64);
 
+  Matrix<float> bias(1, P);
+  bias.fill(gen64);
+
   std::cout << "A:\n" << A;
   std::cout << "B:\n" << B;
 
-  Matrix<float> C(M, P);
+  std::cout << "bias:\n" << bias;
+
+  Matrix<float> ruyProduct(M, P), intgemmProduct(M, P);
 
   const int8_t *A_prepared = A.data();
   const int8_t *B_prepared = B.data();
-  const float *bias_prepared = nullptr;
-  float *output = C.data();
+  const float *bias_prepared = bias.data();
+  float *output;
+
+  output = ruyProduct.data();
   pg::Ruy::int8MultiplyAndAddBias(
       A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
       /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
       output);
 
-  std::cout << "C = A*B : \n" << C;
+  std::cout << "Ruy A*B : \n" << ruyProduct;
 
+  output = intgemmProduct.data();
+  pg::Ruy::int8MultiplyAndAddBias(
+      A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
+      /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
+      output);
+
+  std::cout << "Intgemm A*B : \n" << intgemmProduct;
   return 0;
 }
