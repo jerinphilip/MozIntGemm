@@ -1,3 +1,4 @@
+#include "3rd-party/intgemm/intgemm/aligned.h"
 #include "firefox_interface.h"
 #include <iostream>
 #include <memory>
@@ -11,7 +12,7 @@ public:
   Matrix(size_t nrows, size_t ncols)
       : nrows_(nrows), ncols_(ncols), matrix_(nrows * ncols) {}
 
-  T *data() { return matrix_.data(); }
+  T *data() { return matrix_.begin(); }
   size_t nrows() const { return nrows_; }
   size_t ncols() const { return ncols_; }
 
@@ -42,7 +43,7 @@ public:
 private:
   const size_t nrows_;
   const size_t ncols_;
-  std::vector<T> matrix_;
+  intgemm::AlignedVector<T> matrix_;
 };
 
 int main(int argc, char **argv) {
@@ -61,6 +62,11 @@ int main(int argc, char **argv) {
   P = distribution(gen64);
 
   std::cout << M << " " << N << " " << P << "\n";
+
+  // Do some stuff to get stuff rounded to multiples of 8
+  N = ((N / 8) + 1) * 8;
+  M = ((M / 8) + 1) * 8;
+  P = ((P / 8) + 1) * 8;
 
   Matrix<int8_t> A(M, N), B(N, P);
 
