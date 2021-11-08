@@ -20,7 +20,7 @@ void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
 
   const Index size = rows * cols;
   for (size_t i = 0; i < size; i++) {
-    output[i] = static_cast<float>(input[i] * unquant_multiplier) + zero_point;
+    output[i] = static_cast<float>(input[i] * scale) + zero_point;
   }
 }
 void int8PrepareB(const float *input_B, float scale, float zero_point,
@@ -48,8 +48,9 @@ void int8PrepareBias(const int8_t *input_B_prepared, float scale,
 void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
                             float zero_point_A, const int8_t *input_B_prepared,
                             float scale_B, float zero_point_B,
-                            const float *input_bias_prepared, Index rows_A,
-                            Index width, Index cols_B, float *output) {
+                            const float *input_bias_prepared,
+                            float scale_output, Index rows_A, Index width,
+                            Index cols_B, float *output) {
 
   // It is expected that somehow we have managed to call all prepare by the time
   // we are here, with inputs (prepared) in int8_t. All that's left to do is use
@@ -80,7 +81,7 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
   // Convert to float (this is done through unquantize for now)
-  float unquant_multiplier = 1.0f / (scale_A * scale_B);
+  float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
   unquantize(dst_data.get(), unquant_multiplier, /*zero_point*/ 0.0f, rows_A,
              cols_B, output);
 
