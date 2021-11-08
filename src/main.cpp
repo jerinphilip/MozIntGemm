@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   std::cout << "Ruy A*B : \n" << ruyProduct;
 
   output = intgemmProduct.data();
-  pg::Ruy::int8MultiplyAndAddBias(
+  pg::Intgemm::int8MultiplyAndAddBias(
       A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
       /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
       output);
