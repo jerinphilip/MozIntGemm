@@ -19,7 +19,6 @@ void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
                 Index cols, float *output) {
 
   const Index size = rows * cols;
-  float unquant_multiplier = 1.0f / (scale * scale);
   for (size_t i = 0; i < size; i++) {
     output[i] = static_cast<float>(input[i] * unquant_multiplier) + zero_point;
   }
@@ -81,7 +80,9 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
   // Convert to float (this is done through unquantize for now)
-  unquantize(dst_data.get(), scale_A, zero_point_A, rows_A, cols_B, output);
+  float unquant_multiplier = 1.0f / (scale_A * scale_B);
+  unquantize(dst_data.get(), unquant_multiplier, /*zero_point*/ 0.0f, rows_A,
+             cols_B, output);
 
   // TODO(jerinphilip) There's some bias writing left.
   //
