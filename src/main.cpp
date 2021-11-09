@@ -29,45 +29,58 @@ int main(int argc, char **argv) {
   using pg::Matrix;
 
   std::cout << M << " " << N << " " << P << "\n\n";
-  Matrix<int8_t> A(M, N), mB_prepared(N, P);
-  Matrix<float> B(N, P);
+
+  Matrix<float> B(N, P), A(M, N);
 
   A.fill(gen64);
   B.fill(gen64);
 
-  Matrix<float> bias(1, P);
-  // bias.fill(gen64);
+  Matrix<float> biasForRuy(1, P), mBias_prepared(1, P);
 
   std::cout << "A:\n" << A << "\n";
   std::cout << "B:\n" << B << "\n";
 
-  std::cout << "bias:\n" << bias << "\n";
+  std::cout << "bias:\n" << biasForRuy << "\n";
 
   Matrix<float> ruyProduct(M, P), intgemmProduct(M, P);
 
-  const int8_t *A_prepared = A.data();
-  int8_t *B_prepared = mB_prepared.data();
-  const float *bias_prepared = bias.data();
-  float *output;
+  Matrix<int8_t> mA_prepared(M, N), mB_prepared(N, P);
 
+  int8_t *A_prepared = mA_prepared.data();
+  int8_t *B_prepared = mB_prepared.data();
+  float *bias_prepared = mBias_prepared.data();
+
+  float *output;
   output = intgemmProduct.data();
-  pg::Intgemm::int8PrepareB(B.data(), /*scale=*/1.0f, /*zero_point=*/0.0f,
+
+  float scale = 1.0f, zero_point = 0.0f, output_scale = 1.0f;
+
+  pg::Intgemm::int8PrepareA(A.data(), scale, zero_point,
+                            /*rows_A=*/M, /*width=*/N, A_prepared);
+
+  pg::Intgemm::int8PrepareB(B.data(), scale, zero_point,
                             /*width=*/N, /*cols_B=*/P, B_prepared);
-  pg::Intgemm::int8MultiplyAndAddBias(
-      A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
-      /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
-      output);
+
+  // pg::Intgemm::int8PrepareBias(const int8_t*, float, float, float, float,
+  // Index, Index, const float*, float*)
+  pg::Intgemm::int8PrepareBias(B_prepared, scale, zero_point, scale, zero_point,
+                               /*width=*/N,
+                               /*cols_B=*/P, biasForRuy.data(), bias_prepared);
+
+  pg::Intgemm::int8MultiplyAndAddBias(A_prepared, scale, zero_point, B_prepared,
+                                      scale, zero_point, bias_prepared,
+                                      output_scale, M, N, P, output);
 
   std::cout << "Intgemm A*B : \n" << intgemmProduct << "\n";
 
-  Matrix<int8_t> BForRuy(N, P);
-  BForRuy.fill(B);
+  Matrix<int8_t> BForRuy(N, P), AForRuy(M, N);
+  AForRuy.fill(A);
+  BForRuy.fill(B); // Make a copy so the preparation does not change opaque
+                   // representations.
   output = ruyProduct.data();
-  pg::Ruy::int8MultiplyAndAddBias(A_prepared, /*scale=*/1.0,
-                                  /*zero_point=*/0.0f, BForRuy.data(),
-                                  /*scale=*/1.0,
-                                  /*zero_point=*/0.0f, bias_prepared,
-                                  /*scale_output=*/1.0f, M, N, P, output);
+  pg::Ruy::int8MultiplyAndAddBias(
+      AForRuy.data(), scale, zero_point, BForRuy.data(), scale, zero_point,
+      biasForRuy.data(), output_scale, M, N, P, output);
 
   std::cout << "Ruy A*B : \n" << ruyProduct << "\n";
 
