@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
   // N = ((N / _WIDTH) + 1) * _WIDTH;
   // P = ((P / _WIDTH) + 1) * _WIDTH;
   M = 1, N = 16, P = 8;
+  // M = 32, N = 32, P = 32;
 
   using pg::Matrix;
 
@@ -32,9 +33,11 @@ int main(int argc, char **argv) {
   Matrix<float> B(N, P), A(M, N);
 
   A.fill(gen64);
-  B.fill(gen64);
+  B.fill(gen64, -127, 127);
 
   Matrix<float> biasForRuy(1, P), mBias_prepared(1, P);
+  biasForRuy.fill(gen64);
+  mBias_prepared.fill(biasForRuy);
 
   std::cout << "A:\n" << A << "\n";
   std::cout << "B:\n" << B << "\n";
