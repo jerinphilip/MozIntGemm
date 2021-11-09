@@ -68,13 +68,15 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MakeSimpleLayout(width, cols_B, ruy::Order::kRowMajor,
                         rhs.mutable_layout());
   rhs.set_data(input_B_prepared);
+
   ruy::Matrix<std::int32_t> dst;
   ruy::MakeSimpleLayout(rows_A, cols_B, ruy::Order::kRowMajor,
                         dst.mutable_layout());
 
-  std::unique_ptr<std::int32_t> dst_data =
-      std::make_unique<std::int32_t>(rows_A * cols_B);
-  dst.set_data(dst_data.get());
+  std::vector<std::int32_t> dst_data(rows_A * cols_B);
+  std::int32_t *dest_ptr = dst_data.data();
+
+  dst.set_data(dest_ptr);
 
   // When Dst is int32, mul_params is unused.
   ruy::MulParams<std::int32_t, std::int32_t> mul_params;
@@ -82,11 +84,8 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
 
   // Convert to float (this is done through unquantize for now)
   float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
-  unquantize(dst_data.get(), unquant_multiplier, /*zero_point*/ 0.0f, rows_A,
-             cols_B, output);
-
-  // TODO(jerinphilip) There's some bias writing left.
-  //
+  unquantize(dest_ptr, unquant_multiplier, /*zero_point*/ 0.0f, rows_A, cols_B,
+             output);
 }
 
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,

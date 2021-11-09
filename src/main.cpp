@@ -1,50 +1,7 @@
-#include "3rd-party/intgemm/intgemm/aligned.h"
 #include "firefox_interface.h"
+#include "matrix.h"
 #include <iostream>
-#include <memory>
 #include <random>
-#include <vector>
-
-template <class T> class Matrix {
-public:
-  enum class Order { RowMajor, ColumnMajor };
-
-  Matrix(size_t nrows, size_t ncols)
-      : nrows_(nrows), ncols_(ncols), matrix_(nrows * ncols) {}
-
-  T *data() { return matrix_.begin(); }
-  size_t nrows() const { return nrows_; }
-  size_t ncols() const { return ncols_; }
-
-  void fill(std::mt19937_64 &gen64) {
-    constexpr T _INT8_MAX = 127;
-    constexpr T _INT8_MIN = -127;
-    std::uniform_int_distribution<> int8_distribution(_INT8_MIN, _INT8_MAX);
-    for (size_t i = 0; i < nrows_; i++) {
-      for (size_t j = 0; j < ncols_; j++) {
-        matrix_[i * ncols_ + j] = int8_distribution(gen64);
-      }
-    }
-  }
-
-  friend std::ostream &operator<<(std::ostream &out, const Matrix &matrix) {
-    for (size_t i = 0; i < matrix.nrows_; i++) {
-      for (size_t j = 0; j < matrix.ncols_; j++) {
-        if (j != 0) {
-          out << " ";
-        }
-        out << (int)(matrix.matrix_[i * matrix.ncols_ + j]);
-      }
-      out << "\n";
-    }
-    return out;
-  }
-
-private:
-  const size_t nrows_;
-  const size_t ncols_;
-  intgemm::AlignedVector<T> matrix_;
-};
 
 int main(int argc, char **argv) {
   // Need 8 bit ints, that's all.
@@ -64,10 +21,12 @@ int main(int argc, char **argv) {
   std::cout << M << " " << N << " " << P << "\n";
 
   // Do some stuff to get stuff rounded to multiples of 8
-  const size_t _WIDTH = 64;
+  const size_t _WIDTH = 32;
   N = ((N / _WIDTH) + 1) * _WIDTH;
   M = ((M / _WIDTH) + 1) * _WIDTH;
   P = ((P / _WIDTH) + 1) * _WIDTH;
+
+  using pg::Matrix;
 
   Matrix<int8_t> A(M, N), B(N, P);
 
@@ -75,7 +34,7 @@ int main(int argc, char **argv) {
   B.fill(gen64);
 
   Matrix<float> bias(1, P);
-  bias.fill(gen64);
+  // bias.fill(gen64);
 
   std::cout << "A:\n" << A;
   std::cout << "B:\n" << B;
@@ -104,5 +63,8 @@ int main(int argc, char **argv) {
       output);
 
   std::cout << "Ruy A*B : \n" << ruyProduct;
+
+  std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = "
+            << pg::MeanSquaredError(ruyProduct, intgemmProduct) << "\n";
   return 0;
 }
