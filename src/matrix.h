@@ -18,7 +18,7 @@ public:
   size_t nrows() const { return nrows_; }
   size_t ncols() const { return ncols_; }
 
-  void fill(std::mt19937_64 &gen64, const T minVal = 0, const T maxVal = 127) {
+  void fill(std::mt19937_64 &gen64, const T minVal = 0, const T maxVal = 16) {
     std::uniform_int_distribution<> int8_distribution(minVal, maxVal);
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
@@ -71,7 +71,7 @@ float MeanSquaredError(const Matrix<T> &a, const Matrix<T> &b) {
   float mse = 0.0f;
   for (size_t i = 0; i < a.nrows(); i++) {
     for (size_t j = 0; j < a.ncols(); j++) {
-      float diff = a.at(i, j) - b.at(i, j);
+      float diff = (a.at(i, j) - b.at(i, j));
       mse += diff * diff;
     }
   }

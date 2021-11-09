@@ -33,10 +33,10 @@ int main(int argc, char **argv) {
   Matrix<float> B(N, P), A(M, N);
 
   A.fill(gen64);
-  B.fill(gen64, -127, 127);
+  B.fill(gen64, -8, 8);
 
   Matrix<float> biasForRuy(1, P), mBias_prepared(1, P);
-  biasForRuy.fill(gen64);
+  // biasForRuy.fill(gen64);
   mBias_prepared.fill(biasForRuy);
 
   std::cout << "A:\n" << A << "\n";
