@@ -42,6 +42,15 @@ public:
     return out;
   }
 
+  template <class OT> void fill(const Matrix<OT> &other) {
+    assert(nrows() == other.nrows() and ncols() == other.ncols());
+    for (size_t i = 0; i < nrows_; i++) {
+      for (size_t j = 0; j < ncols_; j++) {
+        matrix_[address(i, j)] = static_cast<T>(other.at(i, j));
+      }
+    }
+  }
+
   const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
 
 private:

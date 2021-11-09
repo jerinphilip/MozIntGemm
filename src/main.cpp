@@ -60,11 +60,14 @@ int main(int argc, char **argv) {
 
   std::cout << "Intgemm A*B : \n" << intgemmProduct << "\n";
 
+  Matrix<int8_t> BForRuy(N, P);
+  BForRuy.fill(B);
   output = ruyProduct.data();
-  pg::Ruy::int8MultiplyAndAddBias(
-      A_prepared, /*scale=*/1.0, /*zero_point=*/0.0f, B_prepared, /*scale=*/1.0,
-      /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
-      output);
+  pg::Ruy::int8MultiplyAndAddBias(A_prepared, /*scale=*/1.0,
+                                  /*zero_point=*/0.0f, BForRuy.data(),
+                                  /*scale=*/1.0,
+                                  /*zero_point=*/0.0f, bias_prepared,
+                                  /*scale_output=*/1.0f, M, N, P, output);
 
   std::cout << "Ruy A*B : \n" << ruyProduct << "\n";
 

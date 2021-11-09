@@ -23,6 +23,7 @@ void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
     output[i] = static_cast<float>(input[i] * scale) + zero_point;
   }
 }
+
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
   quantize(input_B, scale, zero_point, width, cols_B, output);
