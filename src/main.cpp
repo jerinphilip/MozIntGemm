@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     P = distribution(gen64);
 
     // Do some stuff to get stuff rounded to multiples of 8
-    const size_t _WIDTH = 32;
+    const size_t _WIDTH = 64;
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     Matrix<float> B(N, P), A(M, N);
 
     A.fill(gen64);
-    B.fill(gen64, -8, 8);
+    B.fill(gen64, -127, 127);
 
     Matrix<float> biasForRuy(1, P), mBias_prepared(1, P);
     biasForRuy.fill(gen64);

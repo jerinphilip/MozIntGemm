@@ -18,7 +18,7 @@ public:
   size_t nrows() const { return nrows_; }
   size_t ncols() const { return ncols_; }
 
-  void fill(std::mt19937_64 &gen64, const T minVal = 0, const T maxVal = 16) {
+  void fill(std::mt19937_64 &gen64, const T minVal = 0, const T maxVal = 127) {
     std::uniform_int_distribution<> int8_distribution(minVal, maxVal);
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
