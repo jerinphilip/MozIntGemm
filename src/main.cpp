@@ -18,8 +18,6 @@ int main(int argc, char **argv) {
   N = distribution(gen64);
   P = distribution(gen64);
 
-  std::cout << M << " " << N << " " << P << "\n";
-
   // Do some stuff to get stuff rounded to multiples of 8
   const size_t _WIDTH = 32;
   M = ((M / _WIDTH) + 1) * _WIDTH;
@@ -28,6 +26,7 @@ int main(int argc, char **argv) {
 
   using pg::Matrix;
 
+  std::cout << M << " " << N << " " << P << "\n\n";
   Matrix<int8_t> A(M, N), B(N, P);
 
   A.fill(gen64);
@@ -36,10 +35,10 @@ int main(int argc, char **argv) {
   Matrix<float> bias(1, P);
   // bias.fill(gen64);
 
-  std::cout << "A:\n" << A;
-  std::cout << "B:\n" << B;
+  std::cout << "A:\n" << A << "\n";
+  std::cout << "B:\n" << B << "\n";
 
-  std::cout << "bias:\n" << bias;
+  std::cout << "bias:\n" << bias << "\n";
 
   Matrix<float> ruyProduct(M, P), intgemmProduct(M, P);
 
@@ -54,7 +53,7 @@ int main(int argc, char **argv) {
       /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
       output);
 
-  std::cout << "Intgemm A*B : \n" << intgemmProduct;
+  std::cout << "Intgemm A*B : \n" << intgemmProduct << "\n";
 
   output = ruyProduct.data();
   pg::Ruy::int8MultiplyAndAddBias(
@@ -62,7 +61,7 @@ int main(int argc, char **argv) {
       /*zero_point=*/0.0f, bias_prepared, /*scale_output=*/1.0f, M, N, P,
       output);
 
-  std::cout << "Ruy A*B : \n" << ruyProduct;
+  std::cout << "Ruy A*B : \n" << ruyProduct << "\n";
 
   std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = "
             << pg::MeanSquaredError(ruyProduct, intgemmProduct) << "\n";
