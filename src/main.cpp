@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
 
   // Do some stuff to get stuff rounded to multiples of 8
   const size_t _WIDTH = 32;
-  N = ((N / _WIDTH) + 1) * _WIDTH;
   M = ((M / _WIDTH) + 1) * _WIDTH;
+  N = ((N / _WIDTH) + 1) * _WIDTH;
   P = ((P / _WIDTH) + 1) * _WIDTH;
 
   using pg::Matrix;
