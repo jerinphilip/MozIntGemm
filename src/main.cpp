@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
   // M = ((M / _WIDTH) + 1) * _WIDTH;
   // N = ((N / _WIDTH) + 1) * _WIDTH;
   // P = ((P / _WIDTH) + 1) * _WIDTH;
-  //
   M = 1, N = 16, P = 8;
 
   using pg::Matrix;
@@ -61,8 +60,6 @@ int main(int argc, char **argv) {
   pg::Intgemm::int8PrepareB(B.data(), scale, zero_point,
                             /*width=*/N, /*cols_B=*/P, B_prepared);
 
-  // pg::Intgemm::int8PrepareBias(const int8_t*, float, float, float, float,
-  // Index, Index, const float*, float*)
   pg::Intgemm::int8PrepareBias(B_prepared, scale, zero_point, scale, zero_point,
                                /*width=*/N,
                                /*cols_B=*/P, biasForRuy.data(), bias_prepared);

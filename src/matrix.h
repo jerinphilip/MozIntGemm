@@ -20,7 +20,8 @@ public:
 
   void fill(std::mt19937_64 &gen64) {
     constexpr T _INT8_MAX = 127;
-    constexpr T _INT8_MIN = -127;
+    // constexpr T _INT8_MIN = -127;
+    constexpr T _INT8_MIN = 0;
     std::uniform_int_distribution<> int8_distribution(_INT8_MIN, _INT8_MAX);
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
