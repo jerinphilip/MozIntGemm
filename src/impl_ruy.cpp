@@ -88,6 +88,13 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
   unquantize(dest_ptr, unquant_multiplier, /*zero_point*/ 0.0f, rows_A, cols_B,
              output);
+
+  // Add bias on the output.
+  for (size_t i = 0; i < rows_A; i++) {
+    for (size_t j = 0; j < cols_B; j++) {
+      output[i * cols_B + j] += input_bias_prepared[j];
+    }
+  }
 }
 
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,

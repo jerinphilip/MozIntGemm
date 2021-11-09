@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
   B.fill(gen64, -8, 8);
 
   Matrix<float> biasForRuy(1, P), mBias_prepared(1, P);
-  // biasForRuy.fill(gen64);
+  biasForRuy.fill(gen64);
   mBias_prepared.fill(biasForRuy);
 
   std::cout << "A:\n" << A << "\n";
