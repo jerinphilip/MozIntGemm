@@ -7,12 +7,12 @@
 
 namespace pg {
 
+enum class Order { RowMajor, ColMajor };
+
 template <class T> class Matrix {
 public:
-  enum class Order { RowMajor, ColumnMajor };
-
-  Matrix(size_t nrows, size_t ncols)
-      : nrows_(nrows), ncols_(ncols), matrix_(nrows * ncols) {}
+  Matrix(size_t nrows, size_t ncols, Order order = Order::RowMajor)
+      : nrows_(nrows), ncols_(ncols), matrix_(nrows * ncols), order_(order) {}
 
   T *data() { return matrix_.begin(); }
   size_t nrows() const { return nrows_; }
@@ -24,7 +24,7 @@ public:
     std::uniform_int_distribution<> int8_distribution(_INT8_MIN, _INT8_MAX);
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
-        matrix_[i * ncols_ + j] = int8_distribution(gen64);
+        matrix_[address(i, j)] = int8_distribution(gen64);
       }
     }
   }
@@ -35,16 +35,24 @@ public:
         if (j != 0) {
           out << " ";
         }
-        out << (int)(matrix.matrix_[i * matrix.ncols_ + j]);
+        out << (int)(matrix.matrix_[matrix.address(i, j)]);
       }
       out << "\n";
     }
     return out;
   }
 
-  const T &at(size_t i, size_t j) const { return matrix_[i * ncols_ + j]; }
+  const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
 
 private:
+  inline size_t address(size_t i, size_t j) const {
+    if (order_ == Order::RowMajor) {
+      return i * ncols_ + j;
+    } else {
+      return j * nrows_ + i;
+    }
+  }
+  Order order_;
   const size_t nrows_;
   const size_t ncols_;
   intgemm::AlignedVector<T> matrix_;

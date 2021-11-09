@@ -65,7 +65,7 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
                         lhs.mutable_layout());
   lhs.set_data(input_A_prepared);
   ruy::Matrix<std::int8_t> rhs;
-  ruy::MakeSimpleLayout(width, cols_B, ruy::Order::kRowMajor,
+  ruy::MakeSimpleLayout(width, cols_B, ruy::Order::kColMajor,
                         rhs.mutable_layout());
   rhs.set_data(input_B_prepared);
 
