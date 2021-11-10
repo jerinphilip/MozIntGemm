@@ -10,7 +10,7 @@ Objective: ASSERT(Multiply-By-Ruy = Multiply-By-Intgemm), on x86. These will wor
 * [src/firefox\_interface.inl](src/firefox_interface.inl): Interface dictated by firefox for compatibility with something inside firefox.
 * [src/firefox\_interface.h](src/firefox_interface.h): Duplicates interface specified by firefox to be implemented by ruy and intgemm both.
 * [src/impl\_ruy.cpp](src/impl_ruy.cpp): Implementation of the above interface in ruy.
-* [src/impl\_ruy.cpp](src/impl_intgemm.cpp): Implementation of the above interface in intgemm. This is adapted from [wasm\_fallback\_interface.cpp](https://github.com/browsermt/marian-dev/blob/master/src/tensors/cpu/wasm_intgemm_fallback.cpp) provided by Abhishek Aggarwal.
+* [src/impl\_intgemm.cpp](src/impl_intgemm.cpp): Implementation of the above interface in intgemm. This is adapted from [wasm\_fallback\_interface.cpp](https://github.com/browsermt/marian-dev/blob/master/src/tensors/cpu/wasm_intgemm_fallback.cpp) provided by Abhishek Aggarwal.
 
 Once things work on x86, we'll simply turn off intgemm which doesn't compile on
 ARM and the remaining ruy which is agnostic to x86 or ARM will work and provide
