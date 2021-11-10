@@ -43,9 +43,10 @@ void int8PrepareA(const float *input_A, float scale, float zero_point,
   quantize(input_A, scale, zero_point, rows_A, width, output);
 }
 
-void int8PrepareBias(const int8_t *input_B_prepared, float scale,
-                     float zero_point, Index width, Index cols_B,
-                     const float *input_bias, float *output) {}
+void int8PrepareBias(const int8_t *input_B_prepared, float scale_A,
+                     float zero_point_A, float scale_B, float zero_point_B,
+                     Index width, Index cols_B, const float *input_bias,
+                     float *output) {}
 
 void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
                             float zero_point_A, const int8_t *input_B_prepared,

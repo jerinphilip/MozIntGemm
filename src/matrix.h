@@ -51,6 +51,9 @@ public:
 
   const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
 
+  float zero_point() const { return 0.0f; };
+  float scale() const { return 1.0f; };
+
 private:
   inline size_t address(size_t i, size_t j) const {
     if (order_ == Order::RowMajor) {
