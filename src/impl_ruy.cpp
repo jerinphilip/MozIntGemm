@@ -47,7 +47,8 @@ void int8PrepareBias(const int8_t *input_B_prepared, float scale_A,
                      float zero_point_A, float scale_B, float zero_point_B,
                      Index width, Index cols_B, const float *input_bias,
                      float *output) {
-  // Copy bias as is.
+  // Copy bias as is. Ruy supports int8_t*int8_t -> int32_t, so we don't need to
+  // do any trickery with bias to add/substract offset.
   std::memcpy(output, input_bias, /*count=*/sizeof(float) * (1 * cols_B));
 }
 
@@ -103,6 +104,23 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
 
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,
                           Index cols_B, const Index *cols, const Index num_cols,
-                          int8_t *output) {}
+                          int8_t *output) {
+  // Looks like a naive way to do this is select columns manually to be written
+  // at output. For ruy, we expect everything is row-major.
+  //
+  // We intend to slice the columns between (*cols, *cols + num_cols) in a row
+  // major format, on all rows.
+  //
+  // Getting things correct is priority, once tests are in we can optimize this
+  // further through continuous development enabled by tests.
+
+  for (size_t i = 0; i < width; i++) {
+    // Write out each row.
+    for (size_t j = *cols; j < *cols + num_cols; j++) {
+      *(output) = input_B_prepared[i * cols_B + j];
+      output++;
+    }
+  }
+}
 
 } // namespace pg::Ruy

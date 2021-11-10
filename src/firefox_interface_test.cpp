@@ -23,10 +23,8 @@ std::ostream &operator<<(std::ostream &out,
 using namespace pg;
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into
-// output.
+// output, applied with an optional scale.
 #define REPEAT_PATH(lib, A, B, bias, output, output_scale)                     \
-  std::cout << #A << A;                                                        \
-  std::cout << #B << B;                                                        \
   intgemm::AlignedVector<int8_t> mA_prepared(A.nrows() * A.ncols()),           \
       mB_prepared(B.nrows() * B.ncols());                                      \
   intgemm::AlignedVector<float> mBias_prepared(bias.nrows() * bias.ncols());   \
@@ -38,16 +36,13 @@ using namespace pg;
   lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(), \
                     A_prepared);                                               \
                                                                                \
-  std::cout << "A_prepared: " << mA_prepared << "\n";                          \
   lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(), \
                     B_prepared);                                               \
                                                                                \
-  std::cout << "B_prepared: " << mB_prepared << "\n";                          \
   lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),       \
                        B.zero_point(), B.nrows(), B.ncols(), bias.data(),      \
                        bias_prepared);                                         \
                                                                                \
-  std::cout << "bias_prepared: " << mBias_prepared << "\n";                    \
   lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),           \
                               B_prepared, B.scale(), B.zero_point(),           \
                               bias_prepared, output_scale, A.nrows(),          \
@@ -73,11 +68,12 @@ TEST(EndToEnd, EndToEnd) {
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    M = 1, N = 16, P = 8;
+    // M = 1, N = 16, P = 8;
     // M = 32, N = 32, P = 32;
 
-    std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" << P
-              << "]\n\n";
+    // std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" <<
+    // P
+    //           << "]\n\n";
     Matrix<float> B(N, P), A(M, N);
     A.fill(gen64);
     B.fill(gen64, -8, 8);
@@ -91,10 +87,10 @@ TEST(EndToEnd, EndToEnd) {
     { REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale); }
 
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
-    std::cout << "ruyProduct: " << ruyProduct;
-    std::cout << "intgemmProduct: " << intgemmProduct;
-    std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = " << mse
-              << "\n";
+    // std::cout << "ruyProduct: " << ruyProduct;
+    // std::cout << "intgemmProduct: " << intgemmProduct;
+    // std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = " << mse
+    // << "\n";
     ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
   }
 }
