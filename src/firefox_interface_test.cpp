@@ -58,7 +58,7 @@ TEST(EndToEnd, EndToEnd) {
   gen64.seed(42);
   constexpr size_t DIM_MAX = 32;
   constexpr size_t DIM_MIN = 16;
-  constexpr size_t MC_RUNS = 1;
+  constexpr size_t MC_RUNS = 10000;
   for (size_t i = 0; i < MC_RUNS; i++) {
     std::uniform_int_distribution<> distribution(DIM_MIN, DIM_MAX);
 
