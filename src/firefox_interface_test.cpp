@@ -8,6 +8,18 @@
 
 namespace {
 
+template <class T>
+std::ostream &operator<<(std::ostream &out,
+                         const intgemm::AlignedVector<T> &v) {
+  for (size_t i = 0; i < v.size(); i++) {
+    if (i != 0)
+      out << " ";
+    const T *data = v.begin();
+    std::cout << (int)data[i];
+  }
+  return out;
+}
+
 using namespace pg;
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into
@@ -26,13 +38,16 @@ using namespace pg;
   lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(), \
                     A_prepared);                                               \
                                                                                \
+  std::cout << "A_prepared: " << mA_prepared << "\n";                          \
   lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(), \
                     B_prepared);                                               \
                                                                                \
+  std::cout << "B_prepared: " << mB_prepared << "\n";                          \
   lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),       \
                        B.zero_point(), B.nrows(), B.ncols(), bias.data(),      \
                        bias_prepared);                                         \
                                                                                \
+  std::cout << "bias_prepared: " << mBias_prepared << "\n";                    \
   lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),           \
                               B_prepared, B.scale(), B.zero_point(),           \
                               bias_prepared, output_scale, A.nrows(),          \

@@ -21,7 +21,7 @@ void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
 
   const Index size = rows * cols;
   for (size_t i = 0; i < size; i++) {
-    output[i] = static_cast<float>(input[i] * scale) + zero_point;
+    output[i] = input[i] * scale + zero_point;
   }
 }
 
@@ -46,7 +46,10 @@ void int8PrepareA(const float *input_A, float scale, float zero_point,
 void int8PrepareBias(const int8_t *input_B_prepared, float scale_A,
                      float zero_point_A, float scale_B, float zero_point_B,
                      Index width, Index cols_B, const float *input_bias,
-                     float *output) {}
+                     float *output) {
+  // Copy bias as is.
+  std::memcpy(output, input_bias, /*count=*/sizeof(float) * (1 * cols_B));
+}
 
 void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
                             float zero_point_A, const int8_t *input_B_prepared,
