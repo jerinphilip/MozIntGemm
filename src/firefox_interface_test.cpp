@@ -3,6 +3,7 @@
 #include "matrix.h"
 #include "gtest/gtest.h"
 #include <cstdint>
+#include <iostream>
 #include <random>
 
 namespace {
@@ -12,6 +13,8 @@ using namespace pg;
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output.
 #define REPEAT_PATH(lib, A, B, bias, output, output_scale)                     \
+  std::cout << #A << A;                                                        \
+  std::cout << #B << B;                                                        \
   intgemm::AlignedVector<int8_t> mA_prepared(A.nrows() * A.ncols()),           \
       mB_prepared(B.nrows() * B.ncols());                                      \
   intgemm::AlignedVector<float> mBias_prepared(bias.nrows() * bias.ncols());   \
@@ -40,7 +43,7 @@ TEST(EndToEnd, EndToEnd) {
   gen64.seed(42);
   constexpr size_t DIM_MAX = 32;
   constexpr size_t DIM_MIN = 16;
-  constexpr size_t MC_RUNS = 10000;
+  constexpr size_t MC_RUNS = 1;
   for (size_t i = 0; i < MC_RUNS; i++) {
     std::uniform_int_distribution<> distribution(DIM_MIN, DIM_MAX);
 
@@ -55,13 +58,14 @@ TEST(EndToEnd, EndToEnd) {
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    // M = 1, N = 16, P = 8;
+    M = 1, N = 16, P = 8;
     // M = 32, N = 32, P = 32;
 
-    std::cout << M << " " << N << " " << P << "\n\n";
+    std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" << P
+              << "]\n\n";
     Matrix<float> B(N, P), A(M, N);
     A.fill(gen64);
-    B.fill(gen64, -127, 127);
+    B.fill(gen64, -8, 8);
     Matrix<float> bias(1, P);
     bias.fill(gen64);
 
@@ -72,6 +76,8 @@ TEST(EndToEnd, EndToEnd) {
     { REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale); }
 
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
+    std::cout << "ruyProduct: " << ruyProduct;
+    std::cout << "intgemmProduct: " << intgemmProduct;
     std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = " << mse
               << "\n";
     ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
