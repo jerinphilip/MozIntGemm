@@ -84,7 +84,7 @@ template <class Integer> struct IntTmpl {
     // clang-format off
     int8MultiplyAndAddBias(
         A, /*scale_A=*/1.0f, /*zero_point_A=*/0, 
-        B, /*scale_B=*/0.0f, /*zero_point_B=*/0, 
+        B, /*scale_B=*/1.0f, /*zero_point_B=*/0, 
         callback.bias_prepared, callback.unquant_mult,
         A_rows, width, B_cols, callback.output_addr);
     // clang-format on
