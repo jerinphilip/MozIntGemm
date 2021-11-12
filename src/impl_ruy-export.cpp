@@ -106,15 +106,13 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MulParams<std::int32_t, std::int32_t> mul_params;
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
-  // Convert to float (this is done through unquantize for now)
   float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
-  unquantize(dest_ptr, unquant_multiplier, /*zero_point*/ 0.0f, rows_A, cols_B,
-             output);
-
   // Add bias on the output.
   for (size_t i = 0; i < rows_A; i++) {
     for (size_t j = 0; j < cols_B; j++) {
-      output[i * cols_B + j] += input_bias_prepared[j];
+      Index idx = i * cols_B + j;
+      output[idx] =
+          (dest_ptr[idx] * unquant_multiplier) + input_bias_prepared[j];
     }
   }
 }
