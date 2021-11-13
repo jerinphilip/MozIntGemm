@@ -52,6 +52,7 @@ public:
   const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
 
   float zero_point() const {
+    // return 0.0f;
     float running_mean = 0.0f;
     size_t count = 0;
     for (size_t i = 0; i < nrows_; i++) {
@@ -62,16 +63,16 @@ public:
       }
     }
 
-    std::cout << *this;
-    std::cout << running_mean << std::endl;
     return running_mean;
   };
 
   float scale() const {
-    T maxAbsolute = std::numeric_limits<T>::min();
+    // return 1.0f;
+    T maxAbsolute = 0;
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
-        maxAbsolute = std::max<T>(maxAbsolute, matrix_[address(i, j)]);
+        maxAbsolute =
+            std::max<T>(maxAbsolute, std::abs(matrix_[address(i, j)]));
       }
     }
     return 127.0f / static_cast<float>(maxAbsolute);
