@@ -1,5 +1,6 @@
 
 #include "ruy/ruy.h"
+#include <cassert>
 #include <vector>
 
 namespace {
@@ -123,20 +124,12 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,
                           Index cols_B, const Index *cols, const Index num_cols,
                           int8_t *output) {
-  // Looks like a naive way to do this is select columns manually to be written
-  // at output. For ruy, we expect everything is row-major.
-  //
-  // We intend to slice the columns between (*cols, *cols + num_cols) in a row
-  // major format, on all rows.
-  //
-  // Getting things correct is priority, once tests are in we can optimize this
-  // further through continuous development enabled by tests.
-
-  for (size_t i = 0; i < width; i++) {
-    // Write out each row.
-    for (size_t j = *cols; j < *cols + num_cols; j++) {
-      *(output) = input_B_prepared[i * cols_B + j];
-      output++;
+  // Taken from
+  // https://github.com/kpu/intgemm/blob/f1f59bb3b32aad5686eeb41c742279d47be71ce8/test/multiply_test.cc#L145-L151
+  for (Index r = 0; r < width; ++r) {
+    for (int c = 0; c < num_cols; ++c) {
+      assert(c + r * num_cols < width * num_cols);
+      output[c + r * num_cols] = input_B_prepared[cols[c] + r * cols_B];
     }
   }
 }
