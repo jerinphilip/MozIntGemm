@@ -51,8 +51,31 @@ public:
 
   const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
 
-  float zero_point() const { return 0.0f; };
-  float scale() const { return 1.0f; };
+  float zero_point() const {
+    float running_mean = 0.0f;
+    size_t count = 0;
+    for (size_t i = 0; i < nrows_; i++) {
+      for (size_t j = 0; j < ncols_; j++) {
+        running_mean = (1.0f / (count + 1)) *
+                       (matrix_[address(i, j)] + count * running_mean);
+        ++count;
+      }
+    }
+
+    std::cout << *this;
+    std::cout << running_mean << std::endl;
+    return running_mean;
+  };
+
+  float scale() const {
+    T maxAbsolute = std::numeric_limits<T>::min();
+    for (size_t i = 0; i < nrows_; i++) {
+      for (size_t j = 0; j < ncols_; j++) {
+        maxAbsolute = std::max<T>(maxAbsolute, matrix_[address(i, j)]);
+      }
+    }
+    return 127.0f / static_cast<float>(maxAbsolute);
+  };
 
 private:
   inline size_t address(size_t i, size_t j) const {
