@@ -14,6 +14,7 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
 
 // Unquantizes int32_t accumulated output from int8_t multiplies, corrects for
 // any shifts and writes result to output.
+// This function is currently unused.
 void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
                 Index cols, float *output) {
 
@@ -48,6 +49,8 @@ void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
 void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
                                          Index width, Index cols_B,
                                          int8_t *output) {
+  // Assuming since Quantized and no shifting because ruy, all that needs to be
+  // done here is "untranspose".
   for (size_t i = 0; i < width; i++) {
     for (size_t j = 0; j < cols_B; j++) {
       output[i * cols_B + j] = input_B_quant_transposed[j * width + i];
@@ -106,8 +109,8 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MulParams<std::int32_t, std::int32_t> mul_params;
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
+  // Unquantizes, then adds bias in a single statement on the output.
   float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
-  // Add bias on the output.
   for (size_t i = 0; i < rows_A; i++) {
     for (size_t j = 0; j < cols_B; j++) {
       Index idx = i * cols_B + j;
