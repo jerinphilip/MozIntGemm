@@ -22,7 +22,22 @@ std::ostream &operator<<(std::ostream &out,
 
 using namespace pg;
 
-#define DEBUG(x) std::cout << #x << ": " << x << std::endl;
+#ifdef NDEBUG
+
+// static_assert(false);
+#define DEBUG_MATRIX(x)                                                        \
+  do {                                                                         \
+    (void)x;                                                                   \
+  } while (0)
+
+#else // NDEBUG
+
+#define DEBUG_MATRIX(x)                                                        \
+  do {                                                                         \
+    std::cout << #x << ": " << x << std::endl;                                 \
+  } while (0)
+
+#endif // NDEBUG
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
@@ -31,9 +46,9 @@ using namespace pg;
       mB_prepared(B.nrows() * B.ncols());                                      \
   intgemm::AlignedVector<float> mBias_prepared(bias.nrows() * bias.ncols());   \
                                                                                \
-  std::cout << #lib << std::endl;                                              \
-  DEBUG(A);                                                                    \
-  DEBUG(B);                                                                    \
+  DEBUG_MATRIX(A);                                                             \
+  DEBUG_MATRIX(B);                                                             \
+  DEBUG_MATRIX(bias);                                                          \
   int8_t *A_prepared = mA_prepared.begin();                                    \
   int8_t *B_prepared = mB_prepared.begin();                                    \
   float *bias_prepared = mBias_prepared.begin();                               \
@@ -73,7 +88,7 @@ TEST(EndToEnd, EndToEnd) {
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    M = 1, N = 16, P = 8;
+    // M = 1, N = 16, P = 8;
     // M = 32, N = 32, P = 32;
 
     // std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" <<
@@ -81,7 +96,7 @@ TEST(EndToEnd, EndToEnd) {
     //           << "]\n\n";
     Matrix<float> B(N, P), A(M, N);
     A.fill(gen64);
-    B.fill(gen64, -8, 8);
+    B.fill(gen64);
     Matrix<float> bias(1, P);
     bias.fill(gen64);
 
@@ -92,8 +107,8 @@ TEST(EndToEnd, EndToEnd) {
     { REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale); }
 
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
-    std::cout << "ruyProduct: " << ruyProduct;
-    std::cout << "intgemmProduct: " << intgemmProduct;
+    DEBUG_MATRIX(ruyProduct);
+    DEBUG_MATRIX(intgemmProduct);
     // std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = " << mse
     // << "\n";
     ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);

@@ -29,7 +29,21 @@ void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
 
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
-  quantize(input_B, scale, zero_point, width, cols_B, output);
+  // Client matrix is expected to be row-major. We are allowed to change
+  // internal representation starting here. Column major is preferable for B
+  // when A*B (dot product of A row with B column). Ideally this function is
+  // called once, offline.
+  std::vector<int8_t> B_quantized(width * cols_B);
+  quantize(input_B, scale, zero_point, width, cols_B, B_quantized.data());
+
+  // This is a lazy transpose to get overall test correct.
+  // TODO(jerinphilip): Fix with optimized fixed-size transpose reuse.
+  // Look for: Permutation instructions.
+  for (size_t i = 0; i < width; i++) {
+    for (size_t j = 0; j < cols_B; j++) {
+      output[j * width + i] = B_quantized[i * cols_B + j];
+    }
+  }
 }
 
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
@@ -87,13 +101,14 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   // Use ruy to multiply.
   // The following is adapted from
   // https://github.com/google/ruy/blob/878283640de7946a43053e8ebf4f15114fbc9156/example/example.cc#L129-L152
+
   ruy::Context context;
   ruy::Matrix<std::int8_t> lhs;
   ruy::MakeSimpleLayout(rows_A, width, ruy::Order::kRowMajor,
                         lhs.mutable_layout());
   lhs.set_data(input_A_prepared);
   ruy::Matrix<std::int8_t> rhs;
-  ruy::MakeSimpleLayout(width, cols_B, ruy::Order::kRowMajor,
+  ruy::MakeSimpleLayout(width, cols_B, ruy::Order::kColMajor,
                         rhs.mutable_layout());
   rhs.set_data(input_B_prepared);
 

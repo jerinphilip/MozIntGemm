@@ -9,6 +9,38 @@ namespace pg {
 
 enum class Order { RowMajor, ColMajor };
 
+template <class T> class MatrixPrinter {
+public:
+  MatrixPrinter(const T *data, size_t nrows, size_t ncols, Order order)
+      : data_(data), nrows_(nrows), ncols_(ncols), order_(order) {}
+
+  void print(std::ostream &out) {
+    for (size_t i = 0; i < nrows_; i++) {
+      for (size_t j = 0; j < ncols_; j++) {
+        if (j != 0) {
+          out << " ";
+        }
+        out << data_[get(i, j)];
+      }
+      out << "\n";
+    }
+  }
+
+  inline size_t get(size_t i, size_t j) const {
+    if (order_ == Order::RowMajor) {
+      return i * ncols_ + j;
+    } else {
+      return j * nrows_ + i;
+    }
+  }
+
+private:
+  const T *data_;
+  const size_t nrows_;
+  const size_t ncols_;
+  const Order order_;
+};
+
 template <class T> class Matrix {
 public:
   Matrix(size_t nrows, size_t ncols, Order order = Order::RowMajor)
@@ -27,16 +59,10 @@ public:
     }
   }
 
-  friend std::ostream &operator<<(std::ostream &out, const Matrix &matrix) {
-    for (size_t i = 0; i < matrix.nrows_; i++) {
-      for (size_t j = 0; j < matrix.ncols_; j++) {
-        if (j != 0) {
-          out << " ";
-        }
-        out << (int)(matrix.matrix_[matrix.address(i, j)]);
-      }
-      out << "\n";
-    }
+  friend std::ostream &operator<<(std::ostream &out, Matrix &matrix) {
+    MatrixPrinter<T> printer(matrix.data(), matrix.nrows_, matrix.ncols_,
+                             matrix.order_);
+    printer.print(out);
     return out;
   }
 
@@ -52,7 +78,7 @@ public:
   const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
 
   float zero_point() const {
-    // return 0.0f;
+    return 0.0f;
     float running_mean = 0.0f;
     size_t count = 0;
     for (size_t i = 0; i < nrows_; i++) {
@@ -67,7 +93,7 @@ public:
   };
 
   float scale() const {
-    // return 1.0f;
+    return 1.0f;
     T maxAbsolute = 0;
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
