@@ -82,12 +82,12 @@ public:
   float zero_point() const { return 0.0f; };
 
   float scale() const {
-    // return 1.0f;
+    return 1.0f;
     auto maxAbs = [](const float &a, const float &b) {
       return std::max(std::abs(a), std::abs(b));
     };
 
-    ElementType maxAbsolute = std::accumulate(cbegin(), cend(), 0.0f, maxAbs);
+    ElementType maxAbsolute = std::accumulate(cbegin(), cend(), 0, maxAbs);
     return 127.0f / static_cast<float>(maxAbsolute);
   };
 
