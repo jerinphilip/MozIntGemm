@@ -88,29 +88,37 @@ TEST(EndToEnd, EndToEnd) {
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    // M = 1, N = 16, P = 8;
+    M = 1, N = 16, P = 8;
     // M = 32, N = 32, P = 32;
 
     // std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" <<
     // P
     //           << "]\n\n";
-    Matrix<float> B(N, P), A(M, N);
-    A.fill(gen64);
-    B.fill(gen64);
-    Matrix<float> bias(1, P);
-    bias.fill(gen64);
+
+    Layout a_layout(M, N, Order::RowMajor);
+    Layout b_layout(N, P, Order::RowMajor);
+    Layout bias_layout(1, P, Order::RowMajor);
+
+    auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
+    auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
+    auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
+
+    // auto A = make_random_matrix<float>(gen64, a_layout, -127.0f, 127.0f);
+    // auto B = make_random_matrix<float>(gen64, b_layout, -127.0f, 127.0f);
+    // auto bias = make_random_matrix<float>(gen64, bias_layout, -127.0f,
+    // 127.0f);
 
     float output_scale = 1.0f;
-    Matrix<float> intgemmProduct(A.nrows(), B.ncols());
+    Layout productLayout(M, P, Order::RowMajor);
+
+    Matrix<float> intgemmProduct(productLayout);
     { REPEAT_PATH(Intgemm, A, B, bias, intgemmProduct.data(), output_scale); }
-    Matrix<float> ruyProduct(A.nrows(), B.ncols());
+    Matrix<float> ruyProduct(productLayout);
     { REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale); }
 
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_MATRIX(ruyProduct);
     DEBUG_MATRIX(intgemmProduct);
-    // std::cout << "Mean-Squared-Error(ruyProduct, intgemmProduct) = " << mse
-    // << "\n";
     ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
   }
 }

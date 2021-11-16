@@ -127,12 +127,11 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,
                           Index cols_B, const Index *cols, const Index num_cols,
                           int8_t *output) {
-  // Taken from
-  // https://github.com/kpu/intgemm/blob/f1f59bb3b32aad5686eeb41c742279d47be71ce8/test/multiply_test.cc#L145-L151
-  for (Index r = 0; r < width; ++r) {
-    for (int c = 0; c < num_cols; ++c) {
-      assert(c + r * num_cols < width * num_cols);
-      output[c + r * num_cols] = input_B_prepared[cols[c] + r * cols_B];
-    }
+  // B_prepared is expected to be col-major, for our implementation via ruy. If
+  // col-major we can memcpy the respective column entries as they're
+  // sequential. There are width=rows entries.
+  for (Index c = 0; c < num_cols; ++c) {
+    std::memcpy(&output[c * width], &(input_B_prepared[cols[c] * width]),
+                width);
   }
 }

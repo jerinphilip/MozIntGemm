@@ -1,5 +1,6 @@
 #pragma once
 #include "3rd-party/intgemm/intgemm/aligned.h"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <random>
@@ -9,117 +10,139 @@ namespace pg {
 
 enum class Order { RowMajor, ColMajor };
 
-template <class T> class MatrixPrinter {
+class Layout {
 public:
-  MatrixPrinter(const T *data, size_t nrows, size_t ncols, Order order)
-      : data_(data), nrows_(nrows), ncols_(ncols), order_(order) {}
+  Layout(size_t rows, size_t cols, Order order)
+      : rows_(rows), cols_(cols), order_(order) {}
 
-  void print(std::ostream &out) {
-    for (size_t i = 0; i < nrows_; i++) {
-      for (size_t j = 0; j < ncols_; j++) {
-        if (j != 0) {
-          out << " ";
-        }
-        out << data_[get(i, j)];
-      }
-      out << "\n";
-    }
-  }
-
-  inline size_t get(size_t i, size_t j) const {
+  size_t rows() const { return rows_; }
+  size_t cols() const { return cols_; }
+  Order order() const { return order_; }
+  inline size_t num_elem() const { return rows_ * cols_; }
+  inline size_t position(size_t i, size_t j) const {
     if (order_ == Order::RowMajor) {
-      return i * ncols_ + j;
+      return i * cols_ + j;
     } else {
-      return j * nrows_ + i;
+      return j * rows_ + i;
     }
   }
 
 private:
-  const T *data_;
-  const size_t nrows_;
-  const size_t ncols_;
-  const Order order_;
+  size_t rows_;
+  size_t cols_;
+  Order order_;
 };
 
-template <class T> class Matrix {
-public:
-  Matrix(size_t nrows, size_t ncols, Order order = Order::RowMajor)
-      : nrows_(nrows), ncols_(ncols), matrix_(nrows * ncols), order_(order) {}
+namespace utils {
 
-  T *data() { return matrix_.begin(); }
-  size_t nrows() const { return nrows_; }
-  size_t ncols() const { return ncols_; }
-
-  void fill(std::mt19937_64 &gen64, const T minVal = 0, const T maxVal = 127) {
-    std::uniform_int_distribution<> int8_distribution(minVal, maxVal);
-    for (size_t i = 0; i < nrows_; i++) {
-      for (size_t j = 0; j < ncols_; j++) {
-        matrix_[address(i, j)] = int8_distribution(gen64);
+template <class ElementType>
+void printMatrix(std::ostream &out, const ElementType *data,
+                 const Layout &layout) {
+  for (size_t i = 0; i < layout.rows(); i++) {
+    for (size_t j = 0; j < layout.cols(); j++) {
+      if (j != 0) {
+        out << " ";
       }
+      out << data[layout.position(i, j)];
     }
+    out << "\n";
   }
+}
+} // namespace utils
+
+template <class ElementType> class Matrix {
+public:
+  using iterator = ElementType *;
+  using const_iterator = const ElementType *;
+  Matrix(const Layout &layout) : layout_(layout), matrix_(layout.num_elem()) {}
+
+  ElementType *data() { return matrix_.begin(); }
+  size_t nrows() const { return layout_.rows(); }
+  size_t ncols() const { return layout_.cols(); }
+
+  iterator begin() { return data(); }
+  iterator end() { return begin() + layout_.num_elem(); }
+
+  const_iterator cbegin() const { return matrix_.begin(); }
+  const_iterator cend() const { return matrix_.begin() + layout_.num_elem(); }
 
   friend std::ostream &operator<<(std::ostream &out, Matrix &matrix) {
-    MatrixPrinter<T> printer(matrix.data(), matrix.nrows_, matrix.ncols_,
-                             matrix.order_);
-    printer.print(out);
+    utils::printMatrix(out, matrix.data(), matrix.layout_);
     return out;
   }
 
-  template <class OT> void fill(const Matrix<OT> &other) {
-    assert(nrows() == other.nrows() and ncols() == other.ncols());
-    for (size_t i = 0; i < nrows_; i++) {
-      for (size_t j = 0; j < ncols_; j++) {
-        matrix_[address(i, j)] = static_cast<T>(other.at(i, j));
-      }
-    }
+  ElementType &at(size_t i, size_t j) {
+    return matrix_[layout_.position(i, j)];
   }
 
-  const T &at(size_t i, size_t j) const { return matrix_[address(i, j)]; }
+  const ElementType &at(size_t i, size_t j) const {
+    return matrix_[layout_.position(i, j)];
+  }
 
-  float zero_point() const {
-    return 0.0f;
-    float running_mean = 0.0f;
-    size_t count = 0;
-    for (size_t i = 0; i < nrows_; i++) {
-      for (size_t j = 0; j < ncols_; j++) {
-        running_mean = (1.0f / (count + 1)) *
-                       (matrix_[address(i, j)] + count * running_mean);
-        ++count;
-      }
-    }
-
-    return running_mean;
-  };
+  float zero_point() const { return 0.0f; };
 
   float scale() const {
     // return 1.0f;
-    T maxAbsolute = 0;
-    for (size_t i = 0; i < nrows_; i++) {
-      for (size_t j = 0; j < ncols_; j++) {
-        maxAbsolute =
-            std::max<T>(maxAbsolute, std::abs(matrix_[address(i, j)]));
-      }
-    }
+    auto maxAbs = [](const float &a, const float &b) {
+      return std::max(std::abs(a), std::abs(b));
+    };
+
+    ElementType maxAbsolute = std::accumulate(cbegin(), cend(), 0.0f, maxAbs);
     return 127.0f / static_cast<float>(maxAbsolute);
   };
 
 private:
-  inline size_t address(size_t i, size_t j) const {
-    if (order_ == Order::RowMajor) {
-      return i * ncols_ + j;
-    } else {
-      return j * nrows_ + i;
-    }
-  }
-  Order order_;
-  const size_t nrows_;
-  const size_t ncols_;
-  intgemm::AlignedVector<T> matrix_;
+  const Layout layout_;
+  intgemm::AlignedVector<ElementType> matrix_;
 };
 
-template <class T>
-float MeanSquaredError(const Matrix<T> &a, const Matrix<T> &b) {
+template <class ElementType>
+Matrix<ElementType>
+make_random_matrix(std::mt19937_64 &gen64, const Layout &layout,
+                   const ElementType minVal, const ElementType maxVal) {
+  std::cerr << "Not implemented. Specialize for a type" << std::endl;
+  std::abort();
+}
+
+template <>
+Matrix<int8_t>
+make_random_matrix<int8_t>(std::mt19937_64 &gen64, const Layout &layout,
+                           const int8_t minVal, const int8_t maxVal) {
+  Matrix<int8_t> matrix(layout);
+  std::uniform_int_distribution<> int8_distribution(minVal, maxVal);
+  std::generate(matrix.begin(), matrix.end(), [&gen64, &int8_distribution]() {
+    return int8_distribution(gen64);
+  });
+  return matrix;
+}
+
+template <>
+Matrix<float>
+make_random_matrix<float>(std::mt19937_64 &gen64, const Layout &layout,
+                          const float minVal, const float maxVal) {
+  std::uniform_real_distribution<> real_distribution(minVal, maxVal);
+  Matrix<float> matrix(layout);
+  std::generate(matrix.begin(), matrix.end(), [&gen64, &real_distribution]() {
+    return real_distribution(gen64);
+  });
+  return matrix;
+}
+
+Matrix<float> make_random_matrix_but_int_values(std::mt19937_64 &gen64,
+                                                const Layout &layout,
+                                                const int8_t minVal,
+                                                const int8_t maxVal) {
+  std::uniform_int_distribution<> int8_distribution(minVal, maxVal);
+  Matrix<float> matrix(layout);
+  std::generate(matrix.begin(), matrix.end(), [&gen64, &int8_distribution]() {
+    return int8_distribution(gen64);
+  });
+  return matrix;
+}
+
+template <class ElementType>
+float MeanSquaredError(const Matrix<ElementType> &a,
+                       const Matrix<ElementType> &b) {
   assert(a.nrows() == b.nrows() && a.ncols() == b.ncols());
   float mse = 0.0f;
   for (size_t i = 0; i < a.nrows(); i++) {
