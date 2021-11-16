@@ -9,20 +9,8 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
   // Dumb quantize we will improve this eventually.
   const Index size = rows * width;
   for (size_t i = 0; i < size; i++) {
-    output[i] = static_cast<int8_t>(input[i] * scale - zero_point);
+    output[i] = static_cast<int8_t>(scale * input[i] /*- zero_point?*/);
   };
-}
-
-// Unquantizes int32_t accumulated output from int8_t multiplies, corrects for
-// any shifts and writes result to output.
-// This function is currently unused.
-void unquantize(const int32_t *input, float scale, float zero_point, Index rows,
-                Index cols, float *output) {
-
-  const Index size = rows * cols;
-  for (size_t i = 0; i < size; i++) {
-    output[i] = input[i] * scale + zero_point;
-  }
 }
 
 } // namespace

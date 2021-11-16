@@ -93,7 +93,7 @@ public:
   };
 
   float scale() const {
-    return 1.0f;
+    // return 1.0f;
     T maxAbsolute = 0;
     for (size_t i = 0; i < nrows_; i++) {
       for (size_t j = 0; j < ncols_; j++) {
