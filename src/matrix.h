@@ -28,7 +28,7 @@ public:
     }
   }
 
-  Layout transpose() { return Layout(cols_, rows_, order_); }
+  Layout transpose() const { return Layout(cols_, rows_, order_); }
 
 private:
   size_t rows_;

@@ -270,8 +270,8 @@ void MulAPreparedBQTAddBias(Matrix<float> &A,
 
   Lib::int8PrepareBFromQuantizedTransposed(
       B_prepared_quantized_transposed.data(),
-      B_prepared_quantized_transposed.nrows(),
-      B_prepared_quantized_transposed.ncols(), B_prepared);
+      B_prepared_quantized_transposed.ncols(),
+      B_prepared_quantized_transposed.nrows(), B_prepared);
 
   Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(),
                        B_prepared_quantized_transposed.scale(),
@@ -293,17 +293,9 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
   std::mt19937_64 gen64;
   gen64.seed(42);
   auto f = [&gen64](size_t M, size_t N, size_t P) {
-    return;
-    Layout a_layout(M, N, Order::RowMajor);
-    Layout b_layout(N, P, Order::RowMajor);
-    Layout bias_layout(1, P, Order::RowMajor);
-
-    auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
-    auto bias =
-        make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
-
+    auto [A, B, bias] = generateInput(gen64, M, N, P);
     auto B_quantized_transposed =
-        make_random_matrix<int8_t>(gen64, b_layout.transpose(), 0, 127);
+        make_random_matrix<int8_t>(gen64, B.layout().transpose(), -8, 8);
 
     float output_scale = 1.0f;
     Layout productLayout(M, P, Order::RowMajor);
