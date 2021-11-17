@@ -3,6 +3,7 @@
 #include "matrix.h"
 #include "gtest/gtest.h"
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 
@@ -22,22 +23,12 @@ std::ostream &operator<<(std::ostream &out,
 
 using namespace pg;
 
-#ifdef NDEBUG
-
-// static_assert(false);
 #define DEBUG_MATRIX(x)                                                        \
   do {                                                                         \
-    (void)x;                                                                   \
+    if (std::getenv("ARM_PLAYGROUND_DEBUG")) {                                 \
+      std::cout << #x << ": " << x << std::endl;                               \
+    }                                                                          \
   } while (0)
-
-#else // NDEBUG
-
-#define DEBUG_MATRIX(x)                                                        \
-  do {                                                                         \
-    std::cout << #x << ": " << x << std::endl;                                 \
-  } while (0)
-
-#endif // NDEBUG
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
