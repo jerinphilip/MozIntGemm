@@ -181,8 +181,12 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     std::vector<Index> cols(b_layout.cols());
     std::iota(cols.begin(), cols.end(), 0);
     std::shuffle(cols.begin(), cols.end(), gen64);
-    std::uniform_int_distribution<> dist(1, cols.size());
+    std::uniform_int_distribution<> dist(8, cols.size());
     Index cutoff = dist(gen64);
+    // The above won't do. Round to the nearest multiple of 8.
+    if (cutoff % 8 != 0) {
+      cutoff = static_cast<Index>(cutoff / 8) * 8;
+    }
 
     float output_scale = 1.0f;
     Layout productLayout(M, cutoff, Order::RowMajor);
