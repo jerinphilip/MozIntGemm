@@ -90,7 +90,7 @@ void run(std::mt19937_64 &gen64,
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    M = 1, N = 16, P = 8;
+    // M = 1, N = 16, P = 8;
     f(M, N, P);
   }
 }
