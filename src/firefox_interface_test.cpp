@@ -90,9 +90,22 @@ void run(std::mt19937_64 &gen64,
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    // M = 1, N = 16, P = 8;
+    M = 1, N = 16, P = 8;
     f(M, N, P);
   }
+}
+
+std::tuple<Matrix<float>, Matrix<float>, Matrix<float>>
+generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
+  Layout a_layout(M, N, Order::RowMajor);
+  Layout b_layout(N, P, Order::RowMajor);
+  Layout bias_layout(1, P, Order::RowMajor);
+
+  auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
+  auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
+  auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
+  return std::make_tuple(std::move(A), std::move(B), std::move(bias));
+  // return {A, B, bias};
 }
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into
@@ -128,14 +141,7 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
   std::mt19937_64 gen64;
   gen64.seed(42);
   auto f = [&gen64](size_t M, size_t N, size_t P) {
-    Layout a_layout(M, N, Order::RowMajor);
-    Layout b_layout(N, P, Order::RowMajor);
-    Layout bias_layout(1, P, Order::RowMajor);
-
-    auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
-    auto B = make_random_matrix_but_int_values(gen64, b_layout, FMIN, FMAX);
-    auto bias =
-        make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
+    auto [A, B, bias] = generateInput(gen64, M, N, P);
 
     float output_scale = 1.0f;
     Layout productLayout(M, P, Order::RowMajor);
@@ -185,8 +191,8 @@ void MulASelectBAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
                             num_cols, B_prepared_selected);
 
   Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),
-                       B.zero_point(), B.nrows(), B.ncols(), bias.data(),
-                       bias_prepared);
+                       B.zero_point(), B.nrows(), selected_b_layout.cols(),
+                       bias.data(), bias_prepared);
 
   Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),
                               B_prepared_selected, B.scale(), B.zero_point(),
@@ -198,42 +204,47 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
   std::mt19937_64 gen64;
   gen64.seed(42);
   auto f = [&gen64](size_t M, size_t N, size_t P) {
-    Layout a_layout(M, N, Order::RowMajor);
-    Layout b_layout(N, P, Order::RowMajor);
-    Layout bias_layout(1, P, Order::RowMajor);
-
-    auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
-    auto B = make_random_matrix_but_int_values(gen64, b_layout, FMIN, FMAX);
-    auto bias =
-        make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
-
-    std::vector<Index> cols(b_layout.cols());
+    auto [A, B, bias] = generateInput(gen64, M, N, P);
+    std::vector<Index> cols(B.ncols());
     std::iota(cols.begin(), cols.end(), 0);
     std::shuffle(cols.begin(), cols.end(), gen64);
-    std::uniform_int_distribution<> dist(8, cols.size());
+    const int width = 8;
+    std::uniform_int_distribution<> dist(width, cols.size());
     Index cutoff = dist(gen64);
     // The above won't do. Round to the nearest multiple of 8.
-    if (cutoff % 8 != 0) {
-      cutoff = static_cast<Index>(cutoff / 8) * 8;
+    if (cutoff % width != 0) {
+      cutoff = static_cast<Index>(cutoff / width) * width;
     }
+
+    std::sort(cols.begin(), cols.begin() + cutoff);
 
     float output_scale = 1.0f;
     Layout productLayout(M, cutoff, Order::RowMajor);
 
     Matrix<float> selectedB = index_select(B, cols.data(), cutoff);
+    Matrix<float> selectedBias = index_select(bias, cols.data(), cutoff);
+    DEBUG_PRINTABLE(A);
+    DEBUG_PRINTABLE(B);
+    DEBUG_PRINTABLE(selectedB);
+    DEBUG_PRINTABLE(bias);
+    DEBUG_PRINTABLE(selectedBias);
 
     Matrix<float> intgemmProduct(productLayout);
-    MulASelectBAddBias<_Intgemm>(A, B, bias, cols.data(), cutoff,
+    MulASelectBAddBias<_Intgemm>(A, B, selectedBias, cols.data(), cutoff,
                                  intgemmProduct.data(), output_scale);
     Matrix<float> ruyProduct(productLayout);
-    MulASelectBAddBias<_Ruy>(A, B, bias, cols.data(), cutoff, ruyProduct.data(),
-                             output_scale);
+    MulASelectBAddBias<_Ruy>(A, B, selectedBias, cols.data(), cutoff,
+                             ruyProduct.data(), output_scale);
 
-    auto refMul = ReferenceMultiply(A, selectedB, bias);
-    float mse = MeanSquaredError(ruyProduct, intgemmProduct);
+    auto refMul = ReferenceMultiply<float, float>(A, selectedB, selectedBias);
+    float ruy_mse = MeanSquaredError(ruyProduct, refMul);
+    float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
+    DEBUG_PRINTABLE(refMul);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
-    ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
+
+    ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
   };
   run(gen64, f);
 }
@@ -282,6 +293,7 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
   std::mt19937_64 gen64;
   gen64.seed(42);
   auto f = [&gen64](size_t M, size_t N, size_t P) {
+    return;
     Layout a_layout(M, N, Order::RowMajor);
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);

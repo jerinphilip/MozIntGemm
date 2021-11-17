@@ -90,6 +90,8 @@ public:
   float zero_point() const { return 0.0f; };
 
   float scale() const {
+    return 1.0f;
+    // ^ The above is easy when setting int8_t fittable values for tests.
     ElementType maxAbsolute = 0.0;
     for (auto p = cbegin(); p != cend(); ++p) {
       maxAbsolute = std::max<ElementType>(maxAbsolute, std::abs(*p));
@@ -164,13 +166,13 @@ inline float MeanSquaredError(const Matrix<ElementType> &a,
 }
 
 template <class Scalar>
-inline Matrix<Scalar> index_select(const Matrix<Scalar> &input, size_t *cols,
-                                   size_t num_cols) {
+inline Matrix<Scalar> index_select(const Matrix<Scalar> &input, Index *cols,
+                                   Index num_cols) {
   Layout layout(input.layout().rows(), num_cols, input.layout().order());
-  Matrix selected(layout);
-  for (size_t i = 0; i < input.layout.rows(); i++) {
-    for (size_t j = 0; j < num_cols; j++) {
-      selected.at(i, j) = input(i, *cols[j]);
+  Matrix<Scalar> selected(layout);
+  for (size_t i = 0; i < input.layout().rows(); i++) {
+    for (Index j = 0; j < num_cols; j++) {
+      selected.at(i, j) = input.at(i, cols[j]);
     }
   }
   return selected;

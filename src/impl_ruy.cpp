@@ -3,7 +3,7 @@
 #include <iostream>
 #include <memory>
 
-#if 1
+#if 0
 #include "matrix.h"
 #define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
   do {                                                                         \
