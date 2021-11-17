@@ -42,9 +42,9 @@ using namespace pg;
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
 #define REPEAT_PATH(lib, A, B, bias, output, output_scale)                     \
-  intgemm::AlignedVector<int8_t> mA_prepared(A.nrows() * A.ncols()),           \
-      mB_prepared(B.nrows() * B.ncols());                                      \
-  intgemm::AlignedVector<float> mBias_prepared(bias.nrows() * bias.ncols());   \
+  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),           \
+      mB_prepared(B.layout().num_elem());                                      \
+  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());      \
                                                                                \
   DEBUG_MATRIX(A);                                                             \
   DEBUG_MATRIX(B);                                                             \
@@ -88,7 +88,7 @@ TEST(EndToEnd, EndToEnd) {
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    M = 1, N = 16, P = 8;
+    // M = 1, N = 16, P = 8;
     // M = 32, N = 32, P = 32;
 
     // std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" <<
@@ -99,20 +99,20 @@ TEST(EndToEnd, EndToEnd) {
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);
 
-    auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
-    auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
-    auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
+    // auto A = make_random_matrix_but_int_values(gen64, a_layout, -127, 127);
+    // auto B = make_random_matrix_but_int_values(gen64, b_layout, -127, 127);
+    // auto bias =
+    //     make_random_matrix_but_int_values(gen64, bias_layout, -127, 127);
 
-    // auto A = make_random_matrix<float>(gen64, a_layout, -127.0f, 127.0f);
-    // auto B = make_random_matrix<float>(gen64, b_layout, -127.0f, 127.0f);
-    // auto bias = make_random_matrix<float>(gen64, bias_layout, -127.0f,
-    // 127.0f);
+    auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
+    auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
+    auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
 
     float output_scale = 1.0f;
     Layout productLayout(M, P, Order::RowMajor);
-
     Matrix<float> intgemmProduct(productLayout);
     { REPEAT_PATH(Intgemm, A, B, bias, intgemmProduct.data(), output_scale); }
+
     Matrix<float> ruyProduct(productLayout);
     { REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale); }
 

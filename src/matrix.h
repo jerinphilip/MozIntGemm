@@ -56,9 +56,11 @@ public:
   using const_iterator = const ElementType *;
   Matrix(const Layout &layout) : layout_(layout), matrix_(layout.num_elem()) {}
 
-  ElementType *data() { return matrix_.begin(); }
+  const Layout &layout() const { return layout_; }
   size_t nrows() const { return layout_.rows(); }
   size_t ncols() const { return layout_.cols(); }
+
+  ElementType *data() { return matrix_.begin(); }
 
   iterator begin() { return data(); }
   iterator end() { return begin() + layout_.num_elem(); }
@@ -82,7 +84,6 @@ public:
   float zero_point() const { return 0.0f; };
 
   float scale() const {
-    return 1.0f;
     auto maxAbs = [](const float &a, const float &b) {
       return std::max(std::abs(a), std::abs(b));
     };
@@ -143,10 +144,11 @@ Matrix<float> make_random_matrix_but_int_values(std::mt19937_64 &gen64,
 template <class ElementType>
 float MeanSquaredError(const Matrix<ElementType> &a,
                        const Matrix<ElementType> &b) {
-  assert(a.nrows() == b.nrows() && a.ncols() == b.ncols());
+  assert(a.layout().rows() == b.layout().rows() &&
+         a.layout().cols() == b.layout().cols());
   float mse = 0.0f;
-  for (size_t i = 0; i < a.nrows(); i++) {
-    for (size_t j = 0; j < a.ncols(); j++) {
+  for (size_t i = 0; i < a.layout().rows(); i++) {
+    for (size_t j = 0; j < a.layout().cols(); j++) {
       float diff = (a.at(i, j) - b.at(i, j));
       mse += diff * diff;
     }
