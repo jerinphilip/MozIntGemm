@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(${CMAKE_ANDROID_ARCH_ABI} MATCHES "arm")
   set(BUILD_ARCH_ARM ON)
 else()
-  set(BUILD_ARCH_ARM FALSE)
+  set(BUILD_ARCH_ARM OFF)
 endif()
 
 add_subdirectory(3rd-party)

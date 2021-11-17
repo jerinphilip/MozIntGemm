@@ -1,14 +1,18 @@
 
 if(BUILD_ARCH_ARM)
-set(SOURCES
-  impl_ruy.cpp 
-  impl_intgemm.cpp
-)
+    set(SOURCES
+      impl_ruy.cpp 
+    )
 else(BUILD_ARCH_ARM)
-set(SOURCES
-  impl_ruy.cpp 
-)
+    set(SOURCES
+      impl_ruy.cpp 
+      impl_intgemm.cpp
+    )
 endif(BUILD_ARCH_ARM)
+
+message("Sources: " ${SOURCES})
+message("BUILD_ARCH_ARM: " ${BUILD_ARCH_ARM})
+message("EXT_LIBS: " ${EXT_LIBS})
 
 add_library(bridge STATIC ${SOURCES})
 target_link_libraries(bridge ${EXT_LIBS})
