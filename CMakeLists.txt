@@ -16,7 +16,7 @@ endif()
 add_subdirectory(3rd-party)
 
 if(BUILD_ARCH_ARM)
-    set(COMPILE_TESTS OFF)
+    set(COMPILE_TESTS OFF CACHE BOOL "No tests for ARM, oops" FORCE)
     set(EXT_LIBS cpuinfo ruy)
 else() 
     set(EXT_LIBS cpuinfo ruy intgemm)
