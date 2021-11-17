@@ -42,31 +42,33 @@ using namespace pg;
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
 #define REPEAT_PATH(lib, A, B, bias, output, output_scale)                     \
-  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),           \
-      mB_prepared(B.layout().num_elem());                                      \
-  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());      \
+  do {                                                                         \
+    intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),         \
+        mB_prepared(B.layout().num_elem());                                    \
+    intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());    \
                                                                                \
-  DEBUG_MATRIX(A);                                                             \
-  DEBUG_MATRIX(B);                                                             \
-  DEBUG_MATRIX(bias);                                                          \
-  int8_t *A_prepared = mA_prepared.begin();                                    \
-  int8_t *B_prepared = mB_prepared.begin();                                    \
-  float *bias_prepared = mBias_prepared.begin();                               \
+    DEBUG_MATRIX(A);                                                           \
+    DEBUG_MATRIX(B);                                                           \
+    DEBUG_MATRIX(bias);                                                        \
+    int8_t *A_prepared = mA_prepared.begin();                                  \
+    int8_t *B_prepared = mB_prepared.begin();                                  \
+    float *bias_prepared = mBias_prepared.begin();                             \
                                                                                \
-  lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(), \
-                    A_prepared);                                               \
+    lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(),          \
+                      A.ncols(), A_prepared);                                  \
                                                                                \
-  lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(), \
-                    B_prepared);                                               \
+    lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(),          \
+                      B.ncols(), B_prepared);                                  \
                                                                                \
-  lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),       \
-                       B.zero_point(), B.nrows(), B.ncols(), bias.data(),      \
-                       bias_prepared);                                         \
+    lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),     \
+                         B.zero_point(), B.nrows(), B.ncols(), bias.data(),    \
+                         bias_prepared);                                       \
                                                                                \
-  lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),           \
-                              B_prepared, B.scale(), B.zero_point(),           \
-                              bias_prepared, output_scale, A.nrows(),          \
-                              A.ncols(), B.ncols(), output);
+    lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),         \
+                                B_prepared, B.scale(), B.zero_point(),         \
+                                bias_prepared, output_scale, A.nrows(),        \
+                                A.ncols(), B.ncols(), output);                 \
+  } while (0)
 
 TEST(EndToEnd, EndToEnd) {
   std::mt19937_64 gen64;
@@ -91,18 +93,9 @@ TEST(EndToEnd, EndToEnd) {
     // M = 1, N = 16, P = 8;
     // M = 32, N = 32, P = 32;
 
-    // std::cout << "Dimensions: A[" << M << "x" << N << "];  B[" << N << "x" <<
-    // P
-    //           << "]\n\n";
-
     Layout a_layout(M, N, Order::RowMajor);
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);
-
-    // auto A = make_random_matrix_but_int_values(gen64, a_layout, -127, 127);
-    // auto B = make_random_matrix_but_int_values(gen64, b_layout, -127, 127);
-    // auto bias =
-    //     make_random_matrix_but_int_values(gen64, bias_layout, -127, 127);
 
     auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
     auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
@@ -111,10 +104,10 @@ TEST(EndToEnd, EndToEnd) {
     float output_scale = 1.0f;
     Layout productLayout(M, P, Order::RowMajor);
     Matrix<float> intgemmProduct(productLayout);
-    { REPEAT_PATH(Intgemm, A, B, bias, intgemmProduct.data(), output_scale); }
+    REPEAT_PATH(Intgemm, A, B, bias, intgemmProduct.data(), output_scale);
 
     Matrix<float> ruyProduct(productLayout);
-    { REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale); }
+    REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale);
 
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_MATRIX(ruyProduct);
