@@ -1,4 +1,3 @@
-#include "3rd-party/intgemm/intgemm/aligned.h"
 #include "firefox_interface.h"
 #include "matrix.h"
 #include "gtest/gtest.h"
@@ -9,41 +8,7 @@
 
 namespace {
 
-const float FMIN = -127.0f;
-const float FMAX = 127.0f;
-
-template <class T>
-std::ostream &operator<<(std::ostream &out,
-                         const intgemm::AlignedVector<T> &v) {
-  for (size_t i = 0; i < v.size(); i++) {
-    if (i != 0)
-      out << " ";
-    const T *data = v.begin();
-    std::cout << (int)data[i];
-  }
-  return out;
-}
-
 using namespace pg;
-
-template <class Scalar, class AccumScalar>
-Matrix<AccumScalar> ReferenceMultiply(const Matrix<Scalar> &A,
-                                      const Matrix<Scalar> &B,
-                                      const Matrix<Scalar> &bias) {
-
-  Layout productLayout(A.nrows(), B.ncols(), Order::RowMajor);
-  Matrix<AccumScalar> product(productLayout);
-  std::fill(product.begin(), product.end(), 0);
-  for (size_t i = 0; i < A.nrows(); i++) {
-    for (size_t j = 0; j < B.ncols(); j++) {
-      for (size_t k = 0; k < B.nrows(); k++) {
-        product.at(i, j) += A.at(i, k) * B.at(k, j);
-      }
-      product.at(i, j) += bias.at(0, j);
-    }
-  }
-  return product;
-}
 
 #define DEBUG_PRINTABLE(x)                                                     \
   do {                                                                         \
@@ -108,7 +73,6 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
   auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
   return std::make_tuple(std::move(A), std::move(B), std::move(bias));
-  // return {A, B, bias};
 }
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into

@@ -38,9 +38,8 @@ private:
 
 namespace utils {
 
-template <class ElementType>
-void printMatrix(std::ostream &out, const ElementType *data,
-                 const Layout &layout) {
+template <class Scalar>
+void printMatrix(std::ostream &out, const Scalar *data, const Layout &layout) {
   const size_t truncate = 4;
   bool rowEllipses = true;
   for (size_t i = 0; i < layout.rows(); i++) {
@@ -70,22 +69,35 @@ void printMatrix(std::ostream &out, const ElementType *data,
     }
   }
 }
+
+template <class T>
+std::ostream &operator<<(std::ostream &out,
+                         const intgemm::AlignedVector<T> &v) {
+  for (size_t i = 0; i < v.size(); i++) {
+    if (i != 0)
+      out << " ";
+    const T *data = v.begin();
+    std::cout << (int)data[i];
+  }
+  return out;
+}
+
 } // namespace utils
 
-template <class ElementType> class Matrix {
+template <class Scalar> class Matrix {
 public:
-  using iterator = ElementType *;
-  using const_iterator = const ElementType *;
+  using iterator = Scalar *;
+  using const_iterator = const Scalar *;
   Matrix(const Layout &layout) : layout_(layout), matrix_(layout.num_elem()) {}
-  Matrix(const Layout &layout, ElementType *data) : Matrix(layout) {
-    std::memcpy(begin(), data, sizeof(ElementType) * layout_.num_elem());
+  Matrix(const Layout &layout, Scalar *data) : Matrix(layout) {
+    std::memcpy(begin(), data, sizeof(Scalar) * layout_.num_elem());
   }
 
   const Layout &layout() const { return layout_; }
   size_t nrows() const { return layout_.rows(); }
   size_t ncols() const { return layout_.cols(); }
 
-  ElementType *data() { return matrix_.begin(); }
+  Scalar *data() { return matrix_.begin(); }
 
   iterator begin() { return data(); }
   iterator end() { return begin() + layout_.num_elem(); }
@@ -98,11 +110,9 @@ public:
     return out;
   }
 
-  ElementType &at(size_t i, size_t j) {
-    return matrix_[layout_.position(i, j)];
-  }
+  Scalar &at(size_t i, size_t j) { return matrix_[layout_.position(i, j)]; }
 
-  const ElementType &at(size_t i, size_t j) const {
+  const Scalar &at(size_t i, size_t j) const {
     return matrix_[layout_.position(i, j)];
   }
 
@@ -111,9 +121,9 @@ public:
   float scale() const {
     return 1.0f;
     // ^ The above is easy when setting int8_t fittable values for tests.
-    ElementType maxAbsolute = 0.0;
+    Scalar maxAbsolute = 0.0;
     for (auto p = cbegin(); p != cend(); ++p) {
-      maxAbsolute = std::max<ElementType>(maxAbsolute, std::abs(*p));
+      maxAbsolute = std::max<Scalar>(maxAbsolute, std::abs(*p));
     }
 
     return 127.0f / static_cast<float>(maxAbsolute);
@@ -121,13 +131,13 @@ public:
 
 private:
   const Layout layout_;
-  intgemm::AlignedVector<ElementType> matrix_;
+  intgemm::AlignedVector<Scalar> matrix_;
 };
 
-template <class ElementType>
-inline Matrix<ElementType>
+template <class Scalar>
+inline Matrix<Scalar>
 make_random_matrix(std::mt19937_64 &gen64, const Layout &layout,
-                   const ElementType minVal, const ElementType maxVal) {
+                   const Scalar minVal, const Scalar maxVal) {
   std::cerr << "Not implemented. Specialize for a type" << std::endl;
   std::abort();
 }
@@ -169,9 +179,9 @@ inline Matrix<float> make_random_matrix_but_int_values(std::mt19937_64 &gen64,
   return matrix;
 }
 
-template <class ElementType>
-inline float MeanSquaredError(const Matrix<ElementType> &a,
-                              const Matrix<ElementType> &b) {
+template <class Scalar>
+inline float MeanSquaredError(const Matrix<Scalar> &a,
+                              const Matrix<Scalar> &b) {
   assert(a.layout().rows() == b.layout().rows() &&
          a.layout().cols() == b.layout().cols());
   float mse = 0.0f;
@@ -195,6 +205,25 @@ inline Matrix<Scalar> index_select(const Matrix<Scalar> &input, Index *cols,
     }
   }
   return selected;
+}
+
+template <class Scalar, class AccumScalar>
+Matrix<AccumScalar> ReferenceMultiply(const Matrix<Scalar> &A,
+                                      const Matrix<Scalar> &B,
+                                      const Matrix<Scalar> &bias) {
+
+  Layout productLayout(A.nrows(), B.ncols(), Order::RowMajor);
+  Matrix<AccumScalar> product(productLayout);
+  std::fill(product.begin(), product.end(), 0);
+  for (size_t i = 0; i < A.nrows(); i++) {
+    for (size_t j = 0; j < B.ncols(); j++) {
+      for (size_t k = 0; k < B.nrows(); k++) {
+        product.at(i, j) += A.at(i, k) * B.at(k, j);
+      }
+      product.at(i, j) += bias.at(0, j);
+    }
+  }
+  return product;
 }
 
 } // namespace pg
