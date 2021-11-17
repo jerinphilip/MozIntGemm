@@ -82,12 +82,11 @@ void MulABAddBias(Matrix<ElementType> &A, Matrix<ElementType> &B,
                               output);
 }
 
-TEST(EndToEnd, EndToEnd) {
-  std::mt19937_64 gen64;
-  gen64.seed(42);
-  constexpr size_t DIM_MAX = 32;
-  constexpr size_t DIM_MIN = 16;
-  constexpr size_t MC_RUNS = 10000;
+void run(std::mt19937_64 &gen64,
+         std::function<void(size_t, size_t, size_t)> f) {
+  constexpr size_t DIM_MAX = 128;
+  constexpr size_t DIM_MIN = 64;
+  constexpr size_t MC_RUNS = 100;
   for (size_t i = 0; i < MC_RUNS; i++) {
     std::uniform_int_distribution<> distribution(DIM_MIN, DIM_MAX);
 
@@ -102,9 +101,14 @@ TEST(EndToEnd, EndToEnd) {
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    // M = 1, N = 16, P = 8;
-    // M = 32, N = 32, P = 32;
+    f(M, N, P);
+  }
+}
 
+TEST(IntgemmVsRuy, NaiveMultiply) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+  auto f = [&gen64](size_t M, size_t N, size_t P) {
     Layout a_layout(M, N, Order::RowMajor);
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);
@@ -117,14 +121,52 @@ TEST(EndToEnd, EndToEnd) {
     Layout productLayout(M, P, Order::RowMajor);
     Matrix<float> intgemmProduct(productLayout);
     MulABAddBias<_Intgemm>(A, B, bias, intgemmProduct.data(), output_scale);
-
     Matrix<float> ruyProduct(productLayout);
     MulABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_MATRIX(ruyProduct);
     DEBUG_MATRIX(intgemmProduct);
     ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
-  }
+  };
+  run(gen64, f);
+}
+
+TEST(IntgemmVsRuy, SelectedMultiply) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+  auto f = [&gen64](size_t M, size_t N, size_t P) {
+    Layout a_layout(M, N, Order::RowMajor);
+    Layout b_layout(N, P, Order::RowMajor);
+    Layout bias_layout(1, P, Order::RowMajor);
+
+    auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
+    auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
+    auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
+
+    /*
+    std::vector<size_t> cols(b_layout.cols());
+    std::iota(cols.begin(), cols.end(), 0);
+    std::shuffle(cols.begin(), cols.end());
+    // Take first k
+    std::uniform_int_distribution<> dist(1, cols.size());
+    size_t cutoff = dist(gen64);
+
+    Layout selected_b_layout(N, cutoff, Order::RowMajor);
+    auto selectedB(selected_b_layout);
+    */
+
+    float output_scale = 1.0f;
+    Layout productLayout(M, P, Order::RowMajor);
+    Matrix<float> intgemmProduct(productLayout);
+    MulABAddBias<_Intgemm>(A, B, bias, intgemmProduct.data(), output_scale);
+    Matrix<float> ruyProduct(productLayout);
+    MulABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
+    float mse = MeanSquaredError(ruyProduct, intgemmProduct);
+    DEBUG_MATRIX(ruyProduct);
+    DEBUG_MATRIX(intgemmProduct);
+    ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
+  };
+  run(gen64, f);
 }
 
 } // namespace
