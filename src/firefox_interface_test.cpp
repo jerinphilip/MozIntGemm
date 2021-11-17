@@ -30,36 +30,57 @@ using namespace pg;
     }                                                                          \
   } while (0)
 
+#define forward(ns, fn)                                                        \
+  template <class... Args> static void fn(Args... args) { ns::fn(args...); }
+
+#define createStruct(ns)                                                       \
+  struct _##ns {                                                               \
+    forward(ns, int8PrepareA);                                                 \
+    forward(ns, int8PrepareB);                                                 \
+    forward(ns, int8PrepareBias);                                              \
+    forward(ns, int8MultiplyAndAddBias);                                       \
+  }
+
+createStruct(Intgemm);
+createStruct(Ruy);
+
+#define STR(...) STR_(__VA_ARGS__)
+#define STR_(...) #__VA_ARGS__
+
+#pragma message "Intgemm: " STR(createStruct(Intgemm))
+
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
-#define REPEAT_PATH(lib, A, B, bias, output, output_scale)                     \
-  do {                                                                         \
-    intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),         \
-        mB_prepared(B.layout().num_elem());                                    \
-    intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());    \
-                                                                               \
-    DEBUG_MATRIX(A);                                                           \
-    DEBUG_MATRIX(B);                                                           \
-    DEBUG_MATRIX(bias);                                                        \
-    int8_t *A_prepared = mA_prepared.begin();                                  \
-    int8_t *B_prepared = mB_prepared.begin();                                  \
-    float *bias_prepared = mBias_prepared.begin();                             \
-                                                                               \
-    lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(),          \
-                      A.ncols(), A_prepared);                                  \
-                                                                               \
-    lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(),          \
-                      B.ncols(), B_prepared);                                  \
-                                                                               \
-    lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),     \
-                         B.zero_point(), B.nrows(), B.ncols(), bias.data(),    \
-                         bias_prepared);                                       \
-                                                                               \
-    lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),         \
-                                B_prepared, B.scale(), B.zero_point(),         \
-                                bias_prepared, output_scale, A.nrows(),        \
-                                A.ncols(), B.ncols(), output);                 \
-  } while (0)
+template <class Lib, class ElementType>
+void MulABAddBias(Matrix<ElementType> &A, Matrix<ElementType> &B,
+                  Matrix<ElementType> &bias, ElementType *output,
+                  ElementType output_scale) {
+  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
+      mB_prepared(B.layout().num_elem());
+  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
+
+  DEBUG_MATRIX(A);
+  DEBUG_MATRIX(B);
+  DEBUG_MATRIX(bias);
+  int8_t *A_prepared = mA_prepared.begin();
+  int8_t *B_prepared = mB_prepared.begin();
+  float *bias_prepared = mBias_prepared.begin();
+
+  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                    A_prepared);
+
+  Lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(),
+                    B_prepared);
+
+  Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),
+                       B.zero_point(), B.nrows(), B.ncols(), bias.data(),
+                       bias_prepared);
+
+  Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
+                              B.scale(), B.zero_point(), bias_prepared,
+                              output_scale, A.nrows(), A.ncols(), B.ncols(),
+                              output);
+}
 
 TEST(EndToEnd, EndToEnd) {
   std::mt19937_64 gen64;
@@ -95,11 +116,10 @@ TEST(EndToEnd, EndToEnd) {
     float output_scale = 1.0f;
     Layout productLayout(M, P, Order::RowMajor);
     Matrix<float> intgemmProduct(productLayout);
-    REPEAT_PATH(Intgemm, A, B, bias, intgemmProduct.data(), output_scale);
+    MulABAddBias<_Intgemm>(A, B, bias, intgemmProduct.data(), output_scale);
 
     Matrix<float> ruyProduct(productLayout);
-    REPEAT_PATH(Ruy, A, B, bias, ruyProduct.data(), output_scale);
-
+    MulABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_MATRIX(ruyProduct);
     DEBUG_MATRIX(intgemmProduct);
