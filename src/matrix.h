@@ -60,8 +60,12 @@ void printMatrix(std::ostream &out, const ElementType *data,
       }
       out << "\n";
     } else {
-      if (rowEllipses)
-        out << ".\n";
+      if (rowEllipses) {
+        for (size_t i = 0; i < 2 * truncate + 1; i++) {
+          out << "... ";
+        }
+        out << "\n";
+      }
       rowEllipses = false;
     }
   }
