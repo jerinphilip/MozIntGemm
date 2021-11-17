@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 
-namespace {
+namespace detail {
 void quantize(const float *input, float scale, float zero_point, Index rows,
               Index width, int8_t *output) {
   // Dumb quantize we will improve this eventually.
@@ -13,7 +13,16 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
   };
 }
 
-} // namespace
+template <class Scalar>
+void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = 0; j < cols; j++) {
+      output[j * rows + i] = input[i * rows + j];
+    }
+  }
+}
+
+} // namespace detail
 
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
@@ -22,48 +31,33 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
   // when A*B (dot product of A row with B column). Ideally this function is
   // called once, offline.
   std::vector<int8_t> B_quantized(width * cols_B);
-  quantize(input_B, scale, zero_point, width, cols_B, B_quantized.data());
+  detail::quantize(input_B, scale, zero_point, width, cols_B,
+                   B_quantized.data());
 
   // This is a lazy transpose to get overall test correct.
   // TODO(jerinphilip): Fix with optimized fixed-size transpose reuse.
   // Look for: Permutation instructions.
-  for (size_t i = 0; i < width; i++) {
-    for (size_t j = 0; j < cols_B; j++) {
-      output[j * width + i] = B_quantized[i * cols_B + j];
-    }
-  }
+  detail::transpose(B_quantized.data(), width, cols_B, output);
 }
 
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
                                 float zero_point, Index width, Index cols_B,
                                 int8_t *output) {
-  // Assuming this is just fix things via transpose.
-  std::vector<float> input_B;
-  for (size_t i = 0; i < width; i++) {
-    for (size_t j = 0; j < cols_B; j++) {
-      input_B[i * cols_B + j] = input_B_transposed[j * width + i];
-    }
-  }
-
-  // Now after untranspose, this should be same as calling int8PrepareB
-  int8PrepareB(input_B.data(), scale, zero_point, width, cols_B, output);
+  detail::quantize(input_B_transposed, scale, zero_point, width, cols_B,
+                   output);
 }
 
 void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
                                          Index width, Index cols_B,
                                          int8_t *output) {
-  // Assuming since Quantized and no shifting because ruy, all that needs to be
-  // done here is "untranspose".
-  for (size_t i = 0; i < width; i++) {
-    for (size_t j = 0; j < cols_B; j++) {
-      output[i * cols_B + j] = input_B_quant_transposed[j * width + i];
-    }
-  }
+  // Isn't this a no-op, or more specifically a copy.
+  std::memcpy(output, input_B_quant_transposed,
+              /*count=*/sizeof(int8_t) * (width * cols_B));
 }
 
 void int8PrepareA(const float *input_A, float scale, float zero_point,
                   Index rows_A, Index width, int8_t *output) {
-  quantize(input_A, scale, zero_point, rows_A, width, output);
+  detail::quantize(input_A, scale, zero_point, rows_A, width, output);
 }
 
 void int8PrepareBias(const int8_t *input_B_prepared, float scale_A,

@@ -40,6 +40,7 @@ using namespace pg;
     forwardCallToNamespace(ns, int8PrepareBias);                               \
     forwardCallToNamespace(ns, int8MultiplyAndAddBias);                        \
     forwardCallToNamespace(ns, int8SelectColumnsOfB);                          \
+    forwardCallToNamespace(ns, int8PrepareBFromQuantizedTransposed);           \
   }
 
 namespaceToStructForTemplating(Intgemm);
@@ -194,6 +195,77 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     Matrix<float> ruyProduct(productLayout);
     MulASelectBAddBias<_Ruy>(A, B, bias, cols.data(), cutoff, ruyProduct.data(),
                              output_scale);
+    float mse = MeanSquaredError(ruyProduct, intgemmProduct);
+    DEBUG_MATRIX(ruyProduct);
+    DEBUG_MATRIX(intgemmProduct);
+    ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
+  };
+  run(gen64, f);
+}
+
+template <class Lib>
+void MulAPreparedBQTAddBias(Matrix<float> &A,
+                            Matrix<int8_t> &B_prepared_quantized_transposed,
+                            Matrix<float> &bias, float *output,
+                            float output_scale) {
+  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
+      mB_prepared(B_prepared_quantized_transposed.layout().num_elem());
+  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
+
+  DEBUG_MATRIX(A);
+  DEBUG_MATRIX(B_prepared_quantized_transposed);
+  DEBUG_MATRIX(bias);
+  int8_t *A_prepared = mA_prepared.begin();
+  int8_t *B_prepared = mB_prepared.begin();
+  float *bias_prepared = mBias_prepared.begin();
+
+  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                    A_prepared);
+
+  Lib::int8PrepareBFromQuantizedTransposed(
+      B_prepared_quantized_transposed.data(),
+      B_prepared_quantized_transposed.nrows(),
+      B_prepared_quantized_transposed.ncols(), B_prepared);
+
+  Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(),
+                       B_prepared_quantized_transposed.scale(),
+                       B_prepared_quantized_transposed.zero_point(),
+                       B_prepared_quantized_transposed.ncols(),
+                       B_prepared_quantized_transposed.nrows(), bias.data(),
+                       bias_prepared);
+
+  Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
+
+                              B_prepared_quantized_transposed.scale(),
+                              B_prepared_quantized_transposed.zero_point(),
+
+                              bias_prepared, output_scale, A.nrows(), A.ncols(),
+                              B_prepared_quantized_transposed.nrows(), output);
+}
+
+TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+  auto f = [&gen64](size_t M, size_t N, size_t P) {
+    Layout a_layout(M, N, Order::RowMajor);
+    Layout b_layout(N, P, Order::RowMajor);
+    Layout bias_layout(1, P, Order::RowMajor);
+
+    auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
+    // auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
+    auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
+
+    auto B_quantized_transposed =
+        make_random_matrix<int8_t>(gen64, b_layout.transpose(), 0, 127);
+
+    float output_scale = 1.0f;
+    Layout productLayout(M, P, Order::RowMajor);
+    Matrix<float> intgemmProduct(productLayout);
+    MulAPreparedBQTAddBias<_Intgemm>(A, B_quantized_transposed, bias,
+                                     intgemmProduct.data(), output_scale);
+    Matrix<float> ruyProduct(productLayout);
+    MulAPreparedBQTAddBias<_Ruy>(A, B_quantized_transposed, bias,
+                                 ruyProduct.data(), output_scale);
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_MATRIX(ruyProduct);
     DEBUG_MATRIX(intgemmProduct);
