@@ -7,4 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(3rd-party)
+if(COMPILE_TESTS)
+  enable_testing()
+endif(COMPILE_TESTS)
+
 add_subdirectory(src)
