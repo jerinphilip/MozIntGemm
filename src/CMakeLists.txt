@@ -1,5 +1,12 @@
-add_library(bridge STATIC impl_ruy.cpp impl_intgemm.cpp)
-target_link_libraries(bridge ruy cpuinfo intgemm)
+
+if(BUILD_ARCH_ARM)
+    set(SOURCES impl_ruy.cpp)
+else(BUILD_ARCH_ARM)
+    set(SOURCES impl_ruy.cpp impl_intgemm.cpp)
+endif(BUILD_ARCH_ARM)
+
+add_library(bridge STATIC ${SOURCES})
+target_link_libraries(bridge ${EXT_LIBS})
 target_include_directories(bridge PUBLIC ${CMAKE_SOURCE_DIR})
 
 add_executable(main main.cpp)
