@@ -1,7 +1,12 @@
-
 #include "ruy/ruy.h"
 #include <cassert>
 #include <vector>
+
+#ifndef PRINT_MATRIX_DEBUG
+#define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
+  do {                                                                         \
+  } while (0)
+#endif
 
 namespace detail {
 void quantize(const float *input, float scale, float zero_point, Index rows,
@@ -17,7 +22,7 @@ template <class Scalar>
 void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      output[j * rows + i] = input[i * rows + j];
+      output[j * rows + i] = input[i * cols + j];
     }
   }
 }
@@ -30,9 +35,11 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
   // internal representation starting here. Column major is preferable for B
   // when A*B (dot product of A row with B column). Ideally this function is
   // called once, offline.
+  PRINT_MATRIX_DEBUG(input_B, width, cols_B, Order::RowMajor);
   std::vector<int8_t> B_quantized(width * cols_B);
   detail::quantize(input_B, scale, zero_point, width, cols_B,
                    B_quantized.data());
+  PRINT_MATRIX_DEBUG(B_quantized.data(), width, cols_B, Order::RowMajor);
 
   // This is a lazy transpose to get overall test correct.
   // TODO(jerinphilip): Fix with optimized fixed-size transpose reuse.
@@ -89,10 +96,15 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MakeSimpleLayout(rows_A, width, ruy::Order::kRowMajor,
                         lhs.mutable_layout());
   lhs.set_data(input_A_prepared);
+
+  PRINT_MATRIX_DEBUG(input_A_prepared, rows_A, width, Order::RowMajor);
+
   ruy::Matrix<std::int8_t> rhs;
   ruy::MakeSimpleLayout(width, cols_B, ruy::Order::kColMajor,
                         rhs.mutable_layout());
   rhs.set_data(input_B_prepared);
+
+  PRINT_MATRIX_DEBUG(input_B_prepared, width, cols_B, Order::ColMajor);
 
   ruy::Matrix<std::int32_t> dst;
   ruy::MakeSimpleLayout(rows_A, cols_B, ruy::Order::kRowMajor,

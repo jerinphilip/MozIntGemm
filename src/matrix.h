@@ -2,6 +2,7 @@
 #include "3rd-party/intgemm/intgemm/aligned.h"
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -57,6 +58,9 @@ public:
   using iterator = ElementType *;
   using const_iterator = const ElementType *;
   Matrix(const Layout &layout) : layout_(layout), matrix_(layout.num_elem()) {}
+  Matrix(const Layout &layout, ElementType *data) : Matrix(layout) {
+    std::memcpy(begin(), data, sizeof(ElementType) * layout_.num_elem());
+  }
 
   const Layout &layout() const { return layout_; }
   size_t nrows() const { return layout_.rows(); }
@@ -100,7 +104,7 @@ private:
 };
 
 template <class ElementType>
-Matrix<ElementType>
+inline Matrix<ElementType>
 make_random_matrix(std::mt19937_64 &gen64, const Layout &layout,
                    const ElementType minVal, const ElementType maxVal) {
   std::cerr << "Not implemented. Specialize for a type" << std::endl;
@@ -108,7 +112,7 @@ make_random_matrix(std::mt19937_64 &gen64, const Layout &layout,
 }
 
 template <>
-Matrix<int8_t>
+inline Matrix<int8_t>
 make_random_matrix<int8_t>(std::mt19937_64 &gen64, const Layout &layout,
                            const int8_t minVal, const int8_t maxVal) {
   Matrix<int8_t> matrix(layout);
@@ -120,9 +124,10 @@ make_random_matrix<int8_t>(std::mt19937_64 &gen64, const Layout &layout,
 }
 
 template <>
-Matrix<float>
-make_random_matrix<float>(std::mt19937_64 &gen64, const Layout &layout,
-                          const float minVal, const float maxVal) {
+Matrix<float> inline make_random_matrix<float>(std::mt19937_64 &gen64,
+                                               const Layout &layout,
+                                               const float minVal,
+                                               const float maxVal) {
   std::uniform_real_distribution<> real_distribution(minVal, maxVal);
   Matrix<float> matrix(layout);
   std::generate(matrix.begin(), matrix.end(), [&gen64, &real_distribution]() {
@@ -131,10 +136,10 @@ make_random_matrix<float>(std::mt19937_64 &gen64, const Layout &layout,
   return matrix;
 }
 
-Matrix<float> make_random_matrix_but_int_values(std::mt19937_64 &gen64,
-                                                const Layout &layout,
-                                                const int8_t minVal,
-                                                const int8_t maxVal) {
+inline Matrix<float> make_random_matrix_but_int_values(std::mt19937_64 &gen64,
+                                                       const Layout &layout,
+                                                       const int8_t minVal,
+                                                       const int8_t maxVal) {
   std::uniform_int_distribution<> int8_distribution(minVal, maxVal);
   Matrix<float> matrix(layout);
   std::generate(matrix.begin(), matrix.end(), [&gen64, &int8_distribution]() {
@@ -144,8 +149,8 @@ Matrix<float> make_random_matrix_but_int_values(std::mt19937_64 &gen64,
 }
 
 template <class ElementType>
-float MeanSquaredError(const Matrix<ElementType> &a,
-                       const Matrix<ElementType> &b) {
+inline float MeanSquaredError(const Matrix<ElementType> &a,
+                              const Matrix<ElementType> &b) {
   assert(a.layout().rows() == b.layout().rows() &&
          a.layout().cols() == b.layout().cols());
   float mse = 0.0f;

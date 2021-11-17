@@ -9,8 +9,8 @@
 
 namespace {
 
-const float FMAX = 1.0f;
-const float FMIN = -1.0f;
+const float FMIN = -127.0f;
+const float FMAX = 127.0f;
 
 template <class T>
 std::ostream &operator<<(std::ostream &out,
@@ -90,7 +90,7 @@ void run(std::mt19937_64 &gen64,
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    M = 1, N = 16, P = 8;
+    // M = 1, N = 16, P = 8;
     f(M, N, P);
   }
 }
@@ -132,9 +132,10 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);
 
-    auto A = make_random_matrix<float>(gen64, a_layout, FMIN, FMAX);
-    auto B = make_random_matrix<float>(gen64, b_layout, FMIN, FMAX);
-    auto bias = make_random_matrix<float>(gen64, bias_layout, FMIN, FMAX);
+    auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
+    auto B = make_random_matrix_but_int_values(gen64, b_layout, FMIN, FMAX);
+    auto bias =
+        make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
 
     float output_scale = 1.0f;
     Layout productLayout(M, P, Order::RowMajor);
@@ -152,8 +153,8 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     DEBUG_PRINTABLE(refMul);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
-    ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
     ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
   };
   run(gen64, f);
 }
@@ -201,9 +202,10 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);
 
-    auto A = make_random_matrix<float>(gen64, a_layout, FMIN, FMAX);
-    auto B = make_random_matrix<float>(gen64, b_layout, FMIN, FMAX);
-    auto bias = make_random_matrix<float>(gen64, bias_layout, FMIN, FMAX);
+    auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
+    auto B = make_random_matrix_but_int_values(gen64, b_layout, FMIN, FMAX);
+    auto bias =
+        make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
 
     std::vector<Index> cols(b_layout.cols());
     std::iota(cols.begin(), cols.end(), 0);
@@ -279,9 +281,11 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     Layout b_layout(N, P, Order::RowMajor);
     Layout bias_layout(1, P, Order::RowMajor);
 
-    auto A = make_random_matrix<float>(gen64, a_layout, FMIN, FMAX);
-    // auto B = make_random_matrix<float>(gen64, b_layout, FMIN, FMAX);
-    auto bias = make_random_matrix<float>(gen64, bias_layout, FMIN, FMAX);
+    auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
+    // auto B = make_random_matrix_but_int_values(gen64, b_layout, FMIN,
+    // FMAX);
+    auto bias =
+        make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
 
     auto B_quantized_transposed =
         make_random_matrix<int8_t>(gen64, b_layout.transpose(), 0, 127);
