@@ -41,14 +41,29 @@ namespace utils {
 template <class ElementType>
 void printMatrix(std::ostream &out, const ElementType *data,
                  const Layout &layout) {
+  const size_t truncate = 4;
+  bool rowEllipses = true;
   for (size_t i = 0; i < layout.rows(); i++) {
-    for (size_t j = 0; j < layout.cols(); j++) {
-      if (j != 0) {
-        out << " ";
+    if (i <= truncate || layout.rows() - i <= truncate) {
+      bool colEllipses = true;
+      for (size_t j = 0; j < layout.cols(); j++) {
+        if (j <= truncate || layout.cols() - j <= truncate) {
+          if (j != 0) {
+            out << " ";
+          }
+          out << (double)data[layout.position(i, j)];
+        } else {
+          if (colEllipses)
+            out << " ... ";
+          colEllipses = false;
+        }
       }
-      out << (double)data[layout.position(i, j)];
+      out << "\n";
+    } else {
+      if (rowEllipses)
+        out << ".\n";
+      rowEllipses = false;
     }
-    out << "\n";
   }
 }
 } // namespace utils

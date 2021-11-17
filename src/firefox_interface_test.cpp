@@ -90,7 +90,9 @@ void run(std::mt19937_64 &gen64,
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
-    // M = 1, N = 16, P = 8;
+    if (std::getenv("ARM_PLAYGROUND_SMALL")) {
+      M = 1, N = 16, P = 8;
+    }
     f(M, N, P);
   }
 }
@@ -101,6 +103,7 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   Layout b_layout(N, P, Order::RowMajor);
   Layout bias_layout(1, P, Order::RowMajor);
 
+  // The following values work for everything including SSSE3
   auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
   auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
   auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
