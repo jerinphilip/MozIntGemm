@@ -1,4 +1,4 @@
-name: native
+name: "tests x86"
 'on':
   push:
     branches:
@@ -17,7 +17,7 @@ env:
 
 jobs:
     main:
-      name: "Main tests"
+      name: "Tests on x86 Intgemm vs Ruy vs Reference"
       runs-on: "ubuntu-latest"
       steps:
       - name: Checkout

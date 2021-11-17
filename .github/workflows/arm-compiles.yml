@@ -1,4 +1,4 @@
-name: ARM
+name: "armv8-a build"
 'on':
   push:
     branches:
@@ -18,7 +18,7 @@ env:
 
 jobs:
   ubuntu:
-    name: ARM Ubuntu Latest via Android NDK
+    name: "ARM Ubuntu Latest via Android NDK"
     runs-on: ubuntu-latest
 
     steps:
