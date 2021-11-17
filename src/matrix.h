@@ -163,4 +163,17 @@ inline float MeanSquaredError(const Matrix<ElementType> &a,
   return mse;
 }
 
+template <class Scalar>
+inline Matrix<Scalar> index_select(const Matrix<Scalar> &input, size_t *cols,
+                                   size_t num_cols) {
+  Layout layout(input.layout().rows(), num_cols, input.layout().order());
+  Matrix selected(layout);
+  for (size_t i = 0; i < input.layout.rows(); i++) {
+    for (size_t j = 0; j < num_cols; j++) {
+      selected.at(i, j) = input(i, *cols[j]);
+    }
+  }
+  return selected;
+}
+
 } // namespace pg

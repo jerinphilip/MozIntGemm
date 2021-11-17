@@ -219,12 +219,17 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
 
     float output_scale = 1.0f;
     Layout productLayout(M, cutoff, Order::RowMajor);
+
+    Matrix<float> selectedB = index_select(B, cols.data(), cutoff);
+
     Matrix<float> intgemmProduct(productLayout);
     MulASelectBAddBias<_Intgemm>(A, B, bias, cols.data(), cutoff,
                                  intgemmProduct.data(), output_scale);
     Matrix<float> ruyProduct(productLayout);
     MulASelectBAddBias<_Ruy>(A, B, bias, cols.data(), cutoff, ruyProduct.data(),
                              output_scale);
+
+    auto refMul = ReferenceMultiply(A, selectedB, bias);
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
@@ -282,8 +287,6 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     Layout bias_layout(1, P, Order::RowMajor);
 
     auto A = make_random_matrix_but_int_values(gen64, a_layout, FMIN, FMAX);
-    // auto B = make_random_matrix_but_int_values(gen64, b_layout, FMIN,
-    // FMAX);
     auto bias =
         make_random_matrix_but_int_values(gen64, bias_layout, FMIN, FMAX);
 
