@@ -2,8 +2,7 @@ name: native
 'on':
   push:
     branches:
-    - main
-    - ci-sandbox
+    - master
   pull_request:
     branches:
     - '**'
