@@ -70,10 +70,9 @@ void run(std::mt19937_64 &gen64,
 
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
-template <class Lib, class ElementType>
-void MulABAddBias(Matrix<ElementType> &A, Matrix<ElementType> &B,
-                  Matrix<ElementType> &bias, ElementType *output,
-                  ElementType output_scale) {
+template <class Lib>
+void MulABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
+                  float *output, float output_scale) {
   intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
       mB_prepared(B.layout().num_elem());
   intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
@@ -127,11 +126,10 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
   run(gen64, f);
 }
 
-template <class Lib, class ElementType>
-void MulASelectBAddBias(Matrix<ElementType> &A, Matrix<ElementType> &B,
-                        Matrix<ElementType> &bias, Index *cols_begin,
-                        Index num_cols, ElementType *output,
-                        ElementType output_scale) {
+template <class Lib>
+void MulASelectBAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
+                        Index *cols_begin, Index num_cols, float *output,
+                        float output_scale) {
   intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
       mB_prepared(B.layout().num_elem());
   intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
