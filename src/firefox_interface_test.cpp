@@ -10,12 +10,10 @@ namespace {
 
 using namespace pg;
 
-#define DEBUG_PRINTABLE(x)                                                     \
-  do {                                                                         \
-    if (std::getenv("ARM_PLAYGROUND_DEBUG")) {                                 \
-      std::cout << #x << ":\n" << x << std::endl;                              \
-    }                                                                          \
-  } while (0)
+// The following mechanism is to have templating. For purposes of keeping the
+// functions in something global, include trickery is used. Following this, we
+// place these into different namespaces so these can co-exist, not violating
+// ODR.
 
 #define forwardCallToNamespace(ns, fn)                                         \
   template <class... Args> static void fn(Args... args) {                      \
@@ -36,11 +34,18 @@ using namespace pg;
 namespaceToStructForTemplating(Intgemm);
 namespaceToStructForTemplating(Ruy);
 
+#define DEBUG_PRINTABLE(x)                                                     \
+  do {                                                                         \
+    if (std::getenv("ARM_PLAYGROUND_DEBUG")) {                                 \
+      std::cout << #x << ":\n" << x << std::endl;                              \
+    }                                                                          \
+  } while (0)
+
 void run(std::mt19937_64 &gen64,
          std::function<void(size_t, size_t, size_t)> f) {
   constexpr size_t DIM_MAX = 128;
   constexpr size_t DIM_MIN = 64;
-  constexpr size_t MC_RUNS = 10;
+  constexpr size_t MC_RUNS = 100;
   for (size_t i = 0; i < MC_RUNS; i++) {
     std::uniform_int_distribution<> distribution(DIM_MIN, DIM_MAX);
 
@@ -55,9 +60,15 @@ void run(std::mt19937_64 &gen64,
     M = ((M / _WIDTH) + 1) * _WIDTH;
     N = ((N / _WIDTH) + 1) * _WIDTH;
     P = ((P / _WIDTH) + 1) * _WIDTH;
+
+    // Often in debugging it's convenient to inspect what is happening with a
+    // smaller matrix. The follwoing is the smallest we can get to work.
+    // 1x16 A, 16x8 B and 1x8 Bias.
+    // This works only with INTGEMM_CPUID=SSSE3.
     if (std::getenv("ARM_PLAYGROUND_SMALL")) {
       M = 1, N = 16, P = 8;
     }
+
     f(M, N, P);
   }
 }
@@ -68,7 +79,7 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   Layout b_layout(N, P, Order::RowMajor);
   Layout bias_layout(1, P, Order::RowMajor);
 
-  // The following values work for everything including SSSE3
+  // The following values work for everything including SSSE3.
   auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
   auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
   auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
@@ -78,25 +89,27 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
 template <class Lib>
-void MulABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
-                  float *output, float output_scale) {
-  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
-      mB_prepared(B.layout().num_elem());
-  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
+void MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
+                       float *output, float output_scale) {
+  Matrix<int8_t> mA_prepared(A.layout()), mB_prepared(B.layout().transpose());
+  Matrix<float> mBias_prepared(bias.layout());
 
   int8_t *A_prepared = mA_prepared.begin();
   int8_t *B_prepared = mB_prepared.begin();
   float *bias_prepared = mBias_prepared.begin();
 
-  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
-                    A_prepared);
-
+  // Offline, at weights construction.
   Lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(),
                     B_prepared);
 
   Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),
                        B.zero_point(), B.nrows(), B.ncols(), bias.data(),
                        bias_prepared);
+
+  // The following happens online, on arrival of input, activations and imminent
+  // multiply.
+  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                    A_prepared);
 
   Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
                               B.scale(), B.zero_point(), bias_prepared,
@@ -111,22 +124,29 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     auto [A, B, bias] = generateInput(gen64, M, N, P);
 
     float output_scale = 1.0f;
-    Layout productLayout(M, P, Order::RowMajor);
-    Matrix<float> intgemmProduct(productLayout);
-    MulABAddBias<_Intgemm>(A, B, bias, intgemmProduct.data(), output_scale);
-    Matrix<float> ruyProduct(productLayout);
-    MulABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
-
-    Matrix<float> refMul = ReferenceMultiply<float, float>(A, B, bias);
-    float ruy_mse = MeanSquaredError(ruyProduct, refMul);
-    float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
     DEBUG_PRINTABLE(A);
     DEBUG_PRINTABLE(B);
     DEBUG_PRINTABLE(bias);
+
+    // Have a reference multiply ready.
+    Matrix<float> refMul = ReferenceMultiply<float, float>(A, B, bias);
     DEBUG_PRINTABLE(refMul);
-    DEBUG_PRINTABLE(ruyProduct);
+
+    Layout productLayout(M, P, Order::RowMajor);
+
+    Matrix<float> intgemmProduct(productLayout);
+    MultiplyABAddBias<_Intgemm>(A, B, bias, intgemmProduct.data(),
+                                output_scale);
+    float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
+
     DEBUG_PRINTABLE(intgemmProduct);
     ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
+
+    Matrix<float> ruyProduct(productLayout);
+    MultiplyABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
+
+    float ruy_mse = MeanSquaredError(ruyProduct, refMul);
+    DEBUG_PRINTABLE(ruyProduct);
     ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
   };
   run(gen64, f);
@@ -213,10 +233,11 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     DEBUG_PRINTABLE(bias);
     DEBUG_PRINTABLE(selectedBias);
 
+    // Prepare a reference multiply.
     auto refMul = ReferenceMultiply<float, float>(A, selectedB, selectedBias);
     DEBUG_PRINTABLE(refMul);
 
-    // Ruy product
+    // Test: Ruy product vs Reference
     Matrix<float> ruyProduct(productLayout);
     MulASelectBAddBias<_Ruy>(A, B, bias, cols.data(), cutoff, ruyProduct.data(),
                              output_scale);
@@ -226,38 +247,30 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
 
     ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
 
-    // FIXME: Intgemm has issues. Ruy matches refmul on expected behaviour.
+    // Test: Intgemm product vs Reference
     Matrix<float> intgemmProduct(productLayout);
     MulASelectBAddBias<_Intgemm>(A, B, bias, cols.data(), cutoff,
                                  intgemmProduct.data(), output_scale);
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
     DEBUG_PRINTABLE(intgemmProduct);
     ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
-
-    return;
   };
   run(gen64, f);
 }
 
 template <class Lib>
-void MulAPreparedBQTAddBias(Matrix<float> &A,
-                            Matrix<int8_t> &B_prepared_quantized_transposed,
-                            Matrix<float> &bias, float *output,
-                            float output_scale) {
-  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
-      mB_prepared(B_prepared_quantized_transposed.layout().num_elem());
-  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
+void MultiplyAPreparedBQuantizedTransposedAddBias(
+    Matrix<float> &A, Matrix<int8_t> &B_prepared_quantized_transposed,
+    Matrix<float> &bias, float *output, float output_scale) {
+  Matrix<int8_t> mA_prepared(A.layout()),
+      mB_prepared(B_prepared_quantized_transposed.layout());
+  Matrix<float> mBias_prepared(bias.layout());
 
-  DEBUG_PRINTABLE(A);
-  DEBUG_PRINTABLE(B_prepared_quantized_transposed);
-  DEBUG_PRINTABLE(bias);
   int8_t *A_prepared = mA_prepared.begin();
   int8_t *B_prepared = mB_prepared.begin();
   float *bias_prepared = mBias_prepared.begin();
 
-  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
-                    A_prepared);
-
+  // Happens offline.
   Lib::int8PrepareBFromQuantizedTransposed(
       B_prepared_quantized_transposed.data(),
       B_prepared_quantized_transposed.ncols(),
@@ -269,6 +282,10 @@ void MulAPreparedBQTAddBias(Matrix<float> &A,
                        B_prepared_quantized_transposed.ncols(),
                        B_prepared_quantized_transposed.nrows(), bias.data(),
                        bias_prepared);
+
+  // Happens online.
+  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                    A_prepared);
 
   Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
 
@@ -282,22 +299,33 @@ void MulAPreparedBQTAddBias(Matrix<float> &A,
 TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
   std::mt19937_64 gen64;
   gen64.seed(42);
+
   auto f = [&gen64](size_t M, size_t N, size_t P) {
     auto [A, B, bias] = generateInput(gen64, M, N, P);
     auto B_quantized_transposed =
         make_random_matrix<int8_t>(gen64, B.layout().transpose(), -8, 8);
 
+    DEBUG_PRINTABLE(A);
+    DEBUG_PRINTABLE(B_quantized_transposed);
+    DEBUG_PRINTABLE(bias);
     float output_scale = 1.0f;
+
     Layout productLayout(M, P, Order::RowMajor);
+
     Matrix<float> intgemmProduct(productLayout);
-    MulAPreparedBQTAddBias<_Intgemm>(A, B_quantized_transposed, bias,
-                                     intgemmProduct.data(), output_scale);
+    MultiplyAPreparedBQuantizedTransposedAddBias<_Intgemm>(
+        A, B_quantized_transposed, bias, intgemmProduct.data(), output_scale);
+
     Matrix<float> ruyProduct(productLayout);
-    MulAPreparedBQTAddBias<_Ruy>(A, B_quantized_transposed, bias,
-                                 ruyProduct.data(), output_scale);
+    MultiplyAPreparedBQuantizedTransposedAddBias<_Ruy>(
+        A, B_quantized_transposed, bias, ruyProduct.data(), output_scale);
+
+    // Since a reference multiply is tricky here, we simply chose to go with
+    // comparing intgemm and ruy.
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
+
     ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
   };
   run(gen64, f);
