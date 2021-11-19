@@ -10,6 +10,8 @@ namespace {
 
 using namespace pg;
 
+const float MSE_TOLERANCE = 1e-7;
+
 // The following mechanism is to have templating. For purposes of keeping the
 // functions in something global, include trickery is used. Following this, we
 // place these into different namespaces so these can co-exist, not violating
@@ -140,22 +142,22 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
 
     DEBUG_PRINTABLE(intgemmProduct);
-    ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
 
     Matrix<float> ruyProduct(productLayout);
     MultiplyABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
 
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
-    ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
 
 template <class Lib>
-void MulASelectBAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
-                        Index *cols_begin, Index num_cols, float *output,
-                        float output_scale) {
+void MulABAddBiasWithSelect(Matrix<float> &A, Matrix<float> &B,
+                            Matrix<float> &bias, Index *cols_begin,
+                            Index num_cols, float *output, float output_scale) {
 
   // Prepare buffers to write output after prepare.
   Matrix<int8_t> mA_prepared(A.layout());
@@ -239,21 +241,21 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
 
     // Test: Ruy product vs Reference
     Matrix<float> ruyProduct(productLayout);
-    MulASelectBAddBias<_Ruy>(A, B, bias, cols.data(), cutoff, ruyProduct.data(),
-                             output_scale);
+    MulABAddBiasWithSelect<_Ruy>(A, B, bias, cols.data(), cutoff,
+                                 ruyProduct.data(), output_scale);
 
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
 
-    ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
 
     // Test: Intgemm product vs Reference
     Matrix<float> intgemmProduct(productLayout);
-    MulASelectBAddBias<_Intgemm>(A, B, bias, cols.data(), cutoff,
-                                 intgemmProduct.data(), output_scale);
+    MulABAddBiasWithSelect<_Intgemm>(A, B, bias, cols.data(), cutoff,
+                                     intgemmProduct.data(), output_scale);
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
     DEBUG_PRINTABLE(intgemmProduct);
-    ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
@@ -326,7 +328,7 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
 
-    ASSERT_NEAR(mse, 0.0f, /*abs_error=*/1e-7);
+    ASSERT_NEAR(mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
