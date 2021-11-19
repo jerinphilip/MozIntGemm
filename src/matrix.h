@@ -90,7 +90,7 @@ public:
   using const_iterator = const Scalar *;
   Matrix(const Layout &layout) : layout_(layout), matrix_(layout.num_elem()) {}
   Matrix(const Layout &layout, Scalar *data) : Matrix(layout) {
-    std::memcpy(begin(), data, sizeof(Scalar) * layout_.num_elem());
+    std::memcpy(begin(), data, sizeof(Scalar) * layout.num_elem());
   }
 
   const Layout &layout() const { return layout_; }

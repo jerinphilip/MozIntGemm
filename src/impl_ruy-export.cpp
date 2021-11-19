@@ -137,7 +137,7 @@ void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,
   // col-major we can memcpy the respective column entries as they're
   // sequential. There are width=rows entries.
   for (Index c = 0; c < num_cols; ++c) {
-    std::memcpy(&output[c * width], &(input_B_prepared[cols[c] * width]),
+    std::memcpy(&(output[c * width]), &(input_B_prepared[cols[c] * width]),
                 width);
   }
 }

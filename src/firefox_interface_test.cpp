@@ -136,42 +136,60 @@ template <class Lib>
 void MulASelectBAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
                         Index *cols_begin, Index num_cols, float *output,
                         float output_scale) {
-  intgemm::AlignedVector<int8_t> mA_prepared(A.layout().num_elem()),
-      mB_prepared(B.layout().num_elem());
-  intgemm::AlignedVector<float> mBias_prepared(bias.layout().num_elem());
+
+  // Prepare buffers to write output after prepare.
+  Matrix<int8_t> mA_prepared(A.layout());
+
+  // These are prepared once and offline.
+  Matrix<int8_t> mB_prepared(B.layout().transpose());
+  Matrix<float> mBias_prepared(bias.layout());
 
   int8_t *A_prepared = mA_prepared.begin();
   int8_t *B_prepared = mB_prepared.begin();
   float *bias_prepared = mBias_prepared.begin();
 
-  Layout selected_b_layout(B.nrows(), num_cols, Order::ColMajor);
-  intgemm::AlignedVector<int8_t> mBSelected(selected_b_layout.num_elem());
-  int8_t *B_prepared_selected = mBSelected.begin();
+  // B is prepared offline, so is bias, at model construction.
+  // Think of this as happening offline, yet together (thus emulating a single
+  // function).
+  Lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(),
+                    B_prepared);
 
+  Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),
+                       B.zero_point(), B.nrows(), B.ncols(), bias.data(),
+                       bias_prepared);
+
+  // Things below this happen online.
+  // A is activations obtained at runtime.
   Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
                     A_prepared);
 
-  Lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(),
-                    B_prepared);
+  // Select happens at runtime. Online.
+  Matrix<int8_t> mBSelected(Layout(B.nrows(), num_cols, Order::ColMajor));
+
+  int8_t *B_prepared_selected = mBSelected.begin();
 
   Lib::int8SelectColumnsOfB(B_prepared, B.nrows(), B.ncols(), cols_begin,
                             num_cols, B_prepared_selected);
 
-  Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(), B.scale(),
-                       B.zero_point(), B.nrows(), selected_b_layout.cols(),
-                       bias.data(), bias_prepared);
+  // Bias has to be selected similarly.
+  auto mBias_prepared_selected =
+      index_select(mBias_prepared, cols_begin, num_cols);
+
+  float *bias_prepared_selected = mBias_prepared_selected.begin();
 
   Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),
                               B_prepared_selected, B.scale(), B.zero_point(),
-                              bias_prepared, output_scale, A.nrows(), A.ncols(),
-                              selected_b_layout.cols(), output);
+                              bias_prepared_selected, output_scale, A.nrows(),
+                              A.ncols(), mBSelected.ncols(), output);
 }
 
 TEST(IntgemmVsRuy, SelectedMultiply) {
   std::mt19937_64 gen64;
   gen64.seed(42);
-  auto f = [&gen64](size_t M, size_t N, size_t P) {
+  auto f = [&gen64](size_t M, size_t N, size_t P) -> void {
     auto [A, B, bias] = generateInput(gen64, M, N, P);
+
+    // Choose columns
     std::vector<Index> cols(B.ncols());
     std::iota(cols.begin(), cols.end(), 0);
     std::shuffle(cols.begin(), cols.end(), gen64);
@@ -182,7 +200,6 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     if (cutoff % width != 0) {
       cutoff = static_cast<Index>(cutoff / width) * width;
     }
-
     std::sort(cols.begin(), cols.begin() + cutoff);
 
     float output_scale = 1.0f;
@@ -196,24 +213,28 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     DEBUG_PRINTABLE(bias);
     DEBUG_PRINTABLE(selectedBias);
 
-    Matrix<float> intgemmProduct(productLayout);
-    MulASelectBAddBias<_Intgemm>(A, B, selectedBias, cols.data(), cutoff,
-                                 intgemmProduct.data(), output_scale);
-    Matrix<float> ruyProduct(productLayout);
-    MulASelectBAddBias<_Ruy>(A, B, selectedBias, cols.data(), cutoff,
-                             ruyProduct.data(), output_scale);
-
     auto refMul = ReferenceMultiply<float, float>(A, selectedB, selectedBias);
-    float ruy_mse = MeanSquaredError(ruyProduct, refMul);
-    float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
     DEBUG_PRINTABLE(refMul);
+
+    // Ruy product
+    Matrix<float> ruyProduct(productLayout);
+    MulASelectBAddBias<_Ruy>(A, B, bias, cols.data(), cutoff, ruyProduct.data(),
+                             output_scale);
+
+    float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
-    DEBUG_PRINTABLE(intgemmProduct);
 
     ASSERT_NEAR(ruy_mse, 0.0f, /*abs_error=*/1e-7);
 
     // FIXME: Intgemm has issues. Ruy matches refmul on expected behaviour.
-    // ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
+    Matrix<float> intgemmProduct(productLayout);
+    MulASelectBAddBias<_Intgemm>(A, B, bias, cols.data(), cutoff,
+                                 intgemmProduct.data(), output_scale);
+    float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
+    DEBUG_PRINTABLE(intgemmProduct);
+    ASSERT_NEAR(intgemm_mse, 0.0f, /*abs_error=*/1e-7);
+
+    return;
   };
   run(gen64, f);
 }
