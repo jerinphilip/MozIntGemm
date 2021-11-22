@@ -120,7 +120,7 @@ public:
   float zero_point() const { return 0.0f; };
 
   float scale() const {
-    return 1.0f;
+    // return 1.0f;
     // ^ The above is easy when setting int8_t fittable values for tests.
     Scalar maxAbsolute = 0.0;
     for (auto p = cbegin(); p != cend(); ++p) {
