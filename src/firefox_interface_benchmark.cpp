@@ -31,9 +31,10 @@ using namespace pg;
     forwardCallToNamespace(ns, int8PrepareBFromQuantizedTransposed);           \
   }
 
-#ifdef __i386__
+#if defined(__i386__) || defined(__x86_64__)
 namespaceToStructForTemplating(Intgemm);
 #endif
+
 namespaceToStructForTemplating(Ruy);
 
 } // namespace
@@ -50,6 +51,7 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
   float *bias_prepared = mBias_prepared.begin();
 
   // Offline, at weights construction.
+  std::cout << "Prepare B and bias, once for the entire multiply...\n";
   Lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(),
                     B_prepared);
 
@@ -58,12 +60,14 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
                        bias_prepared);
 
   auto start = std::chrono::steady_clock::now();
-  for (size_t i = 0; i < 1; i++) {
+  for (size_t i = 0; i < 10; i++) {
     // The following happens online, on arrival of input, activations and
     // imminent multiply.
+    std::cout << "Iter " << i << ": Prepare A...\n";
     Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
                       A_prepared);
 
+    std::cout << "Iter " << i << ": A*B + bias...\n";
     Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),
                                 B_prepared, B.scale(), B.zero_point(),
                                 bias_prepared, output_scale, A.nrows(),
@@ -80,7 +84,7 @@ int main(int argc, char **argv) {
   auto [A, B, bias] = generateInput(gen64, M, N, P);
   Matrix<float> output(Layout(M, P, Order::RowMajor));
 
-#ifdef __i386__
+#if defined(__i386__) || defined(__x86_64__)
   auto intgemmTime =
       MultiplyABAddBias<_Intgemm>(A, B, bias, output.begin(), 1.0f);
   std::cout << "Multiply routine (intgemm) took: " << intgemmTime << " time."
