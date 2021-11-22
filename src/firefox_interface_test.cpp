@@ -75,7 +75,6 @@ void run(std::mt19937_64 &gen64,
   }
 }
 
-
 // Repeats path for lib with matrices A, B and bias. Final result goes into
 // output, applied with an optional scale.
 template <class Lib>
@@ -87,6 +86,8 @@ void MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
   int8_t *A_prepared = mA_prepared.begin();
   int8_t *B_prepared = mB_prepared.begin();
   float *bias_prepared = mBias_prepared.begin();
+  DEBUG_PRINTABLE(A.scale());
+  DEBUG_PRINTABLE(B.scale());
 
   // Offline, at weights construction.
   Lib::int8PrepareB(B.data(), B.scale(), B.zero_point(), B.nrows(), B.ncols(),
@@ -130,14 +131,14 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
 
     DEBUG_PRINTABLE(intgemmProduct);
-    ASSERT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
+    EXPECT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
 
     Matrix<float> ruyProduct(productLayout);
     MultiplyABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
 
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
-    ASSERT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
+    EXPECT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
@@ -235,7 +236,7 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
 
-    ASSERT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
+    EXPECT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
 
     // Test: Intgemm product vs Reference
     Matrix<float> intgemmProduct(productLayout);
@@ -243,7 +244,7 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
                                      intgemmProduct.data(), output_scale);
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
     DEBUG_PRINTABLE(intgemmProduct);
-    ASSERT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
+    EXPECT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
@@ -316,7 +317,7 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
 
-    ASSERT_NEAR(mse, 0.0f, MSE_TOLERANCE);
+    EXPECT_NEAR(mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
