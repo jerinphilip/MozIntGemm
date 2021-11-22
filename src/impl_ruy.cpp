@@ -1,5 +1,6 @@
 #include "firefox_interface.h"
 #include "ruy/ruy.h"
+#include <cmath>
 #include <iostream>
 #include <memory>
 
