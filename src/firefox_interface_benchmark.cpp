@@ -1,10 +1,10 @@
 #include "firefox_interface.h"
 #include "matrix.h"
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <random>
-#include <chrono>
 
 namespace {
 
@@ -31,14 +31,17 @@ using namespace pg;
     forwardCallToNamespace(ns, int8PrepareBFromQuantizedTransposed);           \
   }
 
-// namespaceToStructForTemplating(Intgemm);
+#ifdef __i386__
+namespaceToStructForTemplating(Intgemm);
+#endif
 namespaceToStructForTemplating(Ruy);
 
-}
+} // namespace
 
 template <class Lib>
-double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
-                       float *output, float output_scale) {
+double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
+                         Matrix<float> &bias, float *output,
+                         float output_scale) {
   Matrix<int8_t> mA_prepared(A.layout()), mB_prepared(B.layout().transpose());
   Matrix<float> mBias_prepared(bias.layout());
 
@@ -55,27 +58,38 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias
                        bias_prepared);
 
   auto start = std::chrono::steady_clock::now();
-  for(size_t i = 0; i < 100; i++){
-      // The following happens online, on arrival of input, activations and imminent
-      // multiply.
-      Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
-                        A_prepared);
+  for (size_t i = 0; i < 1; i++) {
+    // The following happens online, on arrival of input, activations and
+    // imminent multiply.
+    Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                      A_prepared);
 
-      Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
-                                  B.scale(), B.zero_point(), bias_prepared,
-                                  output_scale, A.nrows(), A.ncols(), B.ncols(),
-                                  output);
+    Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(),
+                                B_prepared, B.scale(), B.zero_point(),
+                                bias_prepared, output_scale, A.nrows(),
+                                A.ncols(), B.ncols(), output);
   }
-  return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+  return std::chrono::duration<double>(std::chrono::steady_clock::now() - start)
+      .count();
 }
 
-int main(int argc, char **argv){
-    std::mt19937_64 gen64;
-    gen64.seed(42);
-    size_t M = 1024, N = 32000, P = 1024;
-    auto [A, B, bias] = generateInput(gen64, M, N, P);
-    Matrix<float> output(Layout(M, P, Order::RowMajor));
-    auto duration = MultiplyABAddBias<_Ruy>(A, B, bias, output.begin(), 1.0f);
-    std::cout << "Multiply routine took: " << duration << " time." << std::endl;
-    return 0;
+int main(int argc, char **argv) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+  size_t M = 1024, N = 1024, P = 1024;
+  auto [A, B, bias] = generateInput(gen64, M, N, P);
+  Matrix<float> output(Layout(M, P, Order::RowMajor));
+
+#ifdef __i386__
+  auto intgemmTime =
+      MultiplyABAddBias<_Intgemm>(A, B, bias, output.begin(), 1.0f);
+  std::cout << "Multiply routine (intgemm) took: " << intgemmTime << " time."
+            << std::endl;
+#endif
+
+  auto ruyTime = MultiplyABAddBias<_Ruy>(A, B, bias, output.begin(), 1.0f);
+  std::cout << "Multiply routine (ruy)took: " << ruyTime << " time."
+            << std::endl;
+
+  return 0;
 }

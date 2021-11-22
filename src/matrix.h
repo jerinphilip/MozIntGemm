@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <random>
+#include <tuple>
 #include <vector>
 
 namespace pg {
@@ -209,8 +210,8 @@ inline Matrix<Scalar> index_select(const Matrix<Scalar> &input, Index *cols,
 
 template <class Scalar, class AccumScalar>
 inline Matrix<AccumScalar> ReferenceMultiply(const Matrix<Scalar> &A,
-                                      const Matrix<Scalar> &B,
-                                      const Matrix<Scalar> &bias) {
+                                             const Matrix<Scalar> &B,
+                                             const Matrix<Scalar> &bias) {
 
   Layout productLayout(A.nrows(), B.ncols(), Order::RowMajor);
   Matrix<AccumScalar> product(productLayout);
@@ -226,7 +227,8 @@ inline Matrix<AccumScalar> ReferenceMultiply(const Matrix<Scalar> &A,
   return product;
 }
 
-inline std::tuple<Matrix<float>, Matrix<float>, Matrix<float>> generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
+inline std::tuple<Matrix<float>, Matrix<float>, Matrix<float>>
+generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   Layout a_layout(M, N, Order::RowMajor);
   Layout b_layout(N, P, Order::RowMajor);
   Layout bias_layout(1, P, Order::RowMajor);
