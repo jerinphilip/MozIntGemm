@@ -11,19 +11,6 @@ using namespace pg;
 #define Path Ruy
 #endif
 
-std::tuple<Matrix<float>, Matrix<float>, Matrix<float>>
-generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
-  Layout a_layout(M, N, Order::RowMajor);
-  Layout b_layout(N, P, Order::RowMajor);
-  Layout bias_layout(1, P, Order::RowMajor);
-
-  // The following values work for everything including SSSE3.
-  auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
-  auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
-  auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
-  return std::make_tuple(std::move(A), std::move(B), std::move(bias));
-}
-
 void MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B, Matrix<float> &bias,
                        float *output, float output_scale) {
   Matrix<int8_t> mA_prepared(A.layout()), mB_prepared(B.layout().transpose());
