@@ -131,14 +131,15 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
 
     DEBUG_PRINTABLE(intgemmProduct);
-    EXPECT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
 
     Matrix<float> ruyProduct(productLayout);
     MultiplyABAddBias<_Ruy>(A, B, bias, ruyProduct.data(), output_scale);
 
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
-    EXPECT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
+
+    float ruyVsIntgemm = MeanSquaredError(ruyProduct, intgemmProduct);
+    EXPECT_NEAR(ruyVsIntgemm, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
@@ -236,7 +237,7 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
 
-    EXPECT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
+    // EXPECT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
 
     // Test: Intgemm product vs Reference
     Matrix<float> intgemmProduct(productLayout);
@@ -244,7 +245,9 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
                                      intgemmProduct.data(), output_scale);
     float intgemm_mse = MeanSquaredError(intgemmProduct, refMul);
     DEBUG_PRINTABLE(intgemmProduct);
-    EXPECT_NEAR(intgemm_mse, 0.0f, MSE_TOLERANCE);
+
+    float ruyVsIntgemm = MeanSquaredError(ruyProduct, intgemmProduct);
+    EXPECT_NEAR(ruyVsIntgemm, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }

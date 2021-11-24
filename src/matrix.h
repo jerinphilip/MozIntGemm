@@ -196,6 +196,20 @@ inline float MeanSquaredError(const Matrix<Scalar> &a,
 }
 
 template <class Scalar>
+inline float MaxAbsDifference(const Matrix<Scalar> &a,
+                              const Matrix<Scalar> &b) {
+  assert(a.layout().rows() == b.layout().rows() &&
+         a.layout().cols() == b.layout().cols());
+  float maxAbsDelta = 0.0f;
+  for (size_t i = 0; i < a.layout().rows(); i++) {
+    for (size_t j = 0; j < a.layout().cols(); j++) {
+      maxAbsDelta = std::max<float>(maxAbsDelta, (a.at(i, j) - b.at(i, j)));
+    }
+  }
+  return maxAbsDelta;
+}
+
+template <class Scalar>
 inline Matrix<Scalar> index_select(const Matrix<Scalar> &input, Index *cols,
                                    Index num_cols) {
   Layout layout(input.layout().rows(), num_cols, input.layout().order());
