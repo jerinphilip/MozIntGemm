@@ -14,7 +14,11 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
   // Dumb quantize we will improve this eventually.
   const Index size = rows * width;
   for (size_t i = 0; i < size; i++) {
-    output[i] = static_cast<int8_t>(scale * input[i] /*- zero_point?*/);
+    float value = roundf(scale * input[i]);
+    // int8 can't store larger than 127.0f.
+    value = std::max(-127.0f, value);
+    value = std::min(127.0f, value);
+    output[i] = static_cast<int8_t>(value);
   };
 }
 
@@ -120,12 +124,12 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
   // Unquantizes, then adds bias in a single statement on the output.
-  float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
+  float unquant_multiplier = (1.0f * scale_output) / (scale_A * scale_B);
   for (size_t i = 0; i < rows_A; i++) {
     for (size_t j = 0; j < cols_B; j++) {
       Index idx = i * cols_B + j;
-      output[idx] =
-          (dest_ptr[idx] * unquant_multiplier) + input_bias_prepared[j];
+      output[idx] = (static_cast<float>(dest_ptr[idx]) * unquant_multiplier) +
+                    input_bias_prepared[j];
     }
   }
 }
