@@ -266,10 +266,11 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
 }
 
 inline std::tuple<Matrix<int8_t>, Matrix<int8_t>, Matrix<int8_t>>
-generateIntegralInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
-  Layout a_layout(M, N, Order::RowMajor);
-  Layout b_layout(N, P, Order::RowMajor);
-  Layout bias_layout(1, P, Order::RowMajor);
+generateIntegralInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P, const std::tuple<Order, Order, Order> &ordering) {
+  auto [a_order, b_order, c_order] = ordering;
+  Layout a_layout(M, N, a_order);
+  Layout b_layout(N, P, b_order);
+  Layout bias_layout(1, P, b_order);
 
   // The following values work for everything including SSSE3.
   // Unfortunately, to control errors, we need [-1.0f, 1.0f]. Leaving the below
