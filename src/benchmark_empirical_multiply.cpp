@@ -100,10 +100,10 @@ int main() {
         return order == Order::RowMajor ? "RowMajor" : "ColMajor";
       };
 
-      std::cout << M << "x" << N << "x" << P << ": ";
-      std::cout << "[A = " << toString(a_order) << ", B = " << toString(b_order)
-                << " C = " << toString(c_order) << "] time: "
-                << std::chrono::duration<double>(
+      std::cout << M << "x" << N << "x" << P << " | ";
+      std::cout << "(" << toString(a_order) << ", " << toString(b_order) << ", "
+                << toString(c_order) << ") | ";
+      std::cout << std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - start)
                        .count()
                 << "\n";
