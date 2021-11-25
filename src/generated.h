@@ -2,6 +2,8 @@
 #include <vector>
 #include <tuple>
 
+namespace pg {
+
 struct ProblemSize {
   size_t M;
   size_t N;
@@ -1854,3 +1856,4 @@ static const std::vector<ProblemSize> PROBLEM_SIZES = {
     {1, 256, 256},    {1, 256, 1536},   {1, 1536, 256},   {1, 256, 256},
     {1, 256, 256},    {1, 256, 256},    {1, 256, 256},    {1, 256, 1536},
     {1, 1536, 256},   {1, 256, 6040}};
+}
