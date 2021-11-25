@@ -249,13 +249,13 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   Layout bias_layout(1, P, Order::RowMajor);
 
   // The following values work for everything including SSSE3.
-  auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
-  auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
-  auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
+  // auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
+  // auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
+  // auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
 
-  // auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
-  // auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
-  // auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
+  auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
+  auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
+  auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
   return std::make_tuple(std::move(A), std::move(B), std::move(bias));
 }
 
