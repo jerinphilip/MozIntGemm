@@ -34,14 +34,14 @@ int main() {
   for (auto &ordering : orderings) {
     // I need reflection, C++23, where art thou?
     auto [a, b, c] = ordering;
-    // std::cout << size_t(a) << " " << size_t(b) << " " << size_t(c) << std::endl;
+    // std::cout << size_t(a) << " " << size_t(b) << " " << size_t(c) <<
+    // std::endl;
   }
 
-  bool testing = true;
-  for (auto &ordering : orderings) {
-    auto [a_order, b_order, c_order] = ordering;
-    auto start = std::chrono::steady_clock::now();
-    for (auto &dimensions : PROBLEM_SIZES) {
+  bool testing = false;
+  for (auto &dimensions : PROBLEM_SIZES) {
+    for (auto &ordering : orderings) {
+      auto [a_order, b_order, c_order] = ordering;
       auto [M, N, P] = unroll(dimensions);
       // std::cout << M << " " << N << " " << P << std::endl;
       // Creation, deletion might take a bit of time. Might want to do a lot of
@@ -49,6 +49,7 @@ int main() {
       // TODO: Parameterize this by ordering.
       auto [A, B, bias] = generateIntegralInput(gen64, M, N, P, ordering);
 
+      auto start = std::chrono::steady_clock::now();
       for (size_t i = 0; i < MONTE_CARLO_RUNS; i++) {
         // We're only doing A*B if we look at it.
         using DestScalar = std::int32_t;
@@ -95,20 +96,21 @@ int main() {
         ruy::MulParams<AccumScalar, DestScalar> mul_params;
         ruy::Mul(lhs, rhs, mul_params, &context, &dst);
       }
+      auto toString = [](const Order &order) {
+        return order == Order::RowMajor ? "RowMajor" : "ColMajor";
+      };
+
+      std::cout << M << "x" << N << "x" << P << ": ";
+      std::cout << "[A = " << toString(a_order) << ", B = " << toString(b_order)
+                << " C = " << toString(c_order) << "] time: "
+                << std::chrono::duration<double>(
+                       std::chrono::steady_clock::now() - start)
+                       .count()
+                << "\n";
       if (testing) {
         break;
       }
     }
-    auto toString = [](const Order &order) {
-      return order == Order::RowMajor ? "RowMajor" : "ColMajor";
-    };
-
-    std::cout << "[A = " << toString(a_order) << ", B = " << toString(b_order) << " C = " <<  toString(c_order)
-              << "] time: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - start)
-                     .count()
-              << "\n";
   }
   return 0;
 }
