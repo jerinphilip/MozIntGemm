@@ -10,7 +10,9 @@ namespace {
 
 using namespace pg;
 
-const float MSE_TOLERANCE = 1e-7;
+// We're lowering this.
+// https://github.com/kpu/intgemm/blob/6228d016ecc63470d2dbb76bd4ab7b0abe097993/test/multiply_test.cc#L554-L5757
+const float MSE_TOLERANCE = 1e-3;
 
 // The following mechanism is to have templating. For purposes of keeping the
 // functions in something global, include trickery is used. Following this, we
@@ -139,7 +141,7 @@ TEST(IntgemmVsRuy, NaiveMultiply) {
     DEBUG_PRINTABLE(ruyProduct);
 
     float ruyVsIntgemm = MeanSquaredError(ruyProduct, intgemmProduct);
-    EXPECT_NEAR(ruyVsIntgemm, 0.0f, MSE_TOLERANCE);
+    ASSERT_NEAR(ruyVsIntgemm, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
@@ -237,7 +239,7 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     float ruy_mse = MeanSquaredError(ruyProduct, refMul);
     DEBUG_PRINTABLE(ruyProduct);
 
-    // EXPECT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
+    // ASSERT_NEAR(ruy_mse, 0.0f, MSE_TOLERANCE);
 
     // Test: Intgemm product vs Reference
     Matrix<float> intgemmProduct(productLayout);
@@ -247,7 +249,8 @@ TEST(IntgemmVsRuy, SelectedMultiply) {
     DEBUG_PRINTABLE(intgemmProduct);
 
     float ruyVsIntgemm = MeanSquaredError(ruyProduct, intgemmProduct);
-    EXPECT_NEAR(ruyVsIntgemm, 0.0f, MSE_TOLERANCE);
+
+    ASSERT_NEAR(ruyVsIntgemm, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
@@ -320,7 +323,7 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
 
-    EXPECT_NEAR(mse, 0.0f, MSE_TOLERANCE);
+    ASSERT_NEAR(mse, 0.0f, MSE_TOLERANCE);
   };
   run(gen64, f);
 }
