@@ -18,3 +18,8 @@ if(COMPILE_TESTS)
   include(GoogleTest)
   gtest_discover_tests(firefox_interface_test)
 endif(COMPILE_TESTS)
+
+add_executable(benchmark_empirical_multiply benchmark_empirical_multiply.cpp)
+target_link_libraries(benchmark_empirical_multiply bridge)
+
+
