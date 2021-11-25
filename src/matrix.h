@@ -10,7 +10,8 @@
 #include <vector>
 
 namespace pg {
-    using Index = std::uint32_t;
+
+using Index = std::uint32_t;
 
 enum class Order { RowMajor, ColMajor };
 
@@ -266,20 +267,12 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
 }
 
 inline std::tuple<Matrix<int8_t>, Matrix<int8_t>, Matrix<int8_t>>
-generateIntegralInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P, const std::tuple<Order, Order, Order> &ordering) {
+generateIntegralInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P,
+                      const std::tuple<Order, Order, Order> &ordering) {
   auto [a_order, b_order, c_order] = ordering;
   Layout a_layout(M, N, a_order);
   Layout b_layout(N, P, b_order);
   Layout bias_layout(1, P, b_order);
-
-  // The following values work for everything including SSSE3.
-  // Unfortunately, to control errors, we need [-1.0f, 1.0f]. Leaving the below
-  // block commented here for future multiply inspections on tiny matrices if
-  // necessary).
-
-  // auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
-  // auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
-  // auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
 
   auto A = make_random_matrix<int8_t>(gen64, a_layout, -127, 127);
   auto B = make_random_matrix<int8_t>(gen64, b_layout, -127, 127);
