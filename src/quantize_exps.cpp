@@ -24,8 +24,8 @@ void fastQuantize(const float *input, float scale, float zero_point, Index rows,
     float32x4_t scaledFloat_lo = vmulq_n_f32(*Input++, scale);
 
     // Convert from float
-    // int32x4_t  vcvtq_s32_f32(float32x4_t a); // VCVT.S32.F32 q0, q0
-    int32x4_t scaledInt_lo = vcvtq_s32_f32(scaledFloat_lo);
+    // int32x4_t  vcvtnq_s32_f32(float32x4_t a); // VCVT.S32.F32 q0, q0
+    int32x4_t scaledInt_lo = vcvtnq_s32_f32(scaledFloat_lo);
 
     // Vector saturating narrow integer
     // int16x4_t  vqmovn_s32(int32x4_t a);   // VQMOVN.S32 d0,q0
@@ -37,8 +37,8 @@ void fastQuantize(const float *input, float scale, float zero_point, Index rows,
     float32x4_t scaledFloat_hi = vmulq_n_f32(*Input++, scale);
 
     // Convert from float
-    // int32x4_t  vcvtq_s32_f32(float32x4_t a); // VCVT.S32.F32 q0, q0
-    int32x4_t scaledInt_hi = vcvtq_s32_f32(scaledFloat_hi);
+    // int32x4_t  vcvtnq_s32_f32(float32x4_t a); // VCVT.S32.F32 q0, q0
+    int32x4_t scaledInt_hi = vcvtnq_s32_f32(scaledFloat_hi);
 
     // Vector saturating narrow integer
     // int16x4_t  vqmovn_s32(int32x4_t a);   // VQMOVN.S32 d0,q0
