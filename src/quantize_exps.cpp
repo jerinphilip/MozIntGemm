@@ -12,12 +12,12 @@ using Index = std::int32_t;
 void fastQuantize(const float *input, float scale, float zero_point, Index rows,
                   Index width, int8_t *output) {
   // Dumb quantize we will improve this eventually.
-  const size_t RegisterWidth = 128;
   const float32x4_t *Input = reinterpret_cast<const float32x4_t *>(input);
-  const Index InputSize = rows * width / RegisterWidth;
+  const float32x4_t *InputEnd =
+      reinterpret_cast<const float32x4_t *>(input + rows * width);
 
   int8x8_t *Output = reinterpret_cast<int8x8_t *>(output);
-  while (Input != Input + InputSize) {
+  while (Input != InputEnd) {
     // Vector multiply by scalar
     // float32x4_t vmulq_n_f32(float32x4_t a, float32_t b); // VMUL.F32
     // q0,q0,d0[0]
@@ -84,17 +84,18 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
 
 int main() {
   std::mt19937_64 gen64;
-  std::vector<float> A(5 * 4);
-  std::vector<int8_t> output(5 * 4);
+  const size_t rows = 16, cols = 16;
+  std::vector<float> A(rows * cols);
+  std::vector<int8_t> output(rows * cols);
   std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
   std::generate(A.begin(), A.end(), [&]() { return dist(gen64); });
-  // compilerSaveUsQuantize(A.data(), 127.0f, 0, 5, 4, output.data());
-  // fastQuantize(A.data(), 127.0f, 0, 5, 4, output.data());
+  // compilerSaveUsQuantize(A.data(), 127.0f, 0, rows, cols, output.data());
+  // fastQuantize(A.data(), 127.0f, 0, rows, cols, output.data());
 
 #define ChooseQuantize(fn)                                                     \
   std::cout << #fn << std::endl;                                               \
-  fn(A.data(), 127.0f, 0, 5, 4, output.data());                                \
-  for (size_t i = 0; i < 5 * 4; i++) {                                         \
+  fn(A.data(), 127.0f, 0, rows, cols, output.data());                          \
+  for (size_t i = 0; i < rows * cols; i++) {                                   \
     std::cout << (double)output[i] << " ";                                     \
   }                                                                            \
   std::cout << std::endl;
