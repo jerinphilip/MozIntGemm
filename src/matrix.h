@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <random>
 #include <tuple>
@@ -51,7 +52,8 @@ void printMatrix(std::ostream &out, const Scalar *data, const Layout &layout) {
           if (j != 0) {
             out << " ";
           }
-          out << (double)data[layout.position(i, j)];
+          out << std::fixed << std::showpoint << std::setprecision(4)
+              << (double)data[layout.position(i, j)];
         } else {
           if (colEllipses)
             out << " ... ";
@@ -120,7 +122,7 @@ public:
   float zero_point() const { return 0.0f; };
 
   float scale() const {
-    return 1.0f;
+    // return 1.0f;
     // ^ The above is easy when setting int8_t fittable values for tests.
     Scalar maxAbsolute = 0.0;
     for (auto p = cbegin(); p != cend(); ++p) {
@@ -192,7 +194,21 @@ inline float MeanSquaredError(const Matrix<Scalar> &a,
       mse += diff * diff;
     }
   }
-  return mse;
+  return std::sqrt(mse) / static_cast<float>(a.layout().num_elem());
+}
+
+template <class Scalar>
+inline float MaxAbsDifference(const Matrix<Scalar> &a,
+                              const Matrix<Scalar> &b) {
+  assert(a.layout().rows() == b.layout().rows() &&
+         a.layout().cols() == b.layout().cols());
+  float maxAbsDelta = 0.0f;
+  for (size_t i = 0; i < a.layout().rows(); i++) {
+    for (size_t j = 0; j < a.layout().cols(); j++) {
+      maxAbsDelta = std::max<float>(maxAbsDelta, (a.at(i, j) - b.at(i, j)));
+    }
+  }
+  return maxAbsDelta;
 }
 
 template <class Scalar>
@@ -212,7 +228,6 @@ template <class Scalar, class AccumScalar>
 inline Matrix<AccumScalar> ReferenceMultiply(const Matrix<Scalar> &A,
                                              const Matrix<Scalar> &B,
                                              const Matrix<Scalar> &bias) {
-
   Layout productLayout(A.nrows(), B.ncols(), Order::RowMajor);
   Matrix<AccumScalar> product(productLayout);
   std::fill(product.begin(), product.end(), 0);
@@ -234,9 +249,17 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   Layout bias_layout(1, P, Order::RowMajor);
 
   // The following values work for everything including SSSE3.
-  auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
-  auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
-  auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
+  // Unfortunately, to control errors, we need [-1.0f, 1.0f]. Leaving the below
+  // block commented here for future multiply inspections on tiny matrices if
+  // necessary).
+
+  // auto A = make_random_matrix_but_int_values(gen64, a_layout, 0, 127);
+  // auto B = make_random_matrix_but_int_values(gen64, b_layout, -8, 8);
+  // auto bias = make_random_matrix_but_int_values(gen64, bias_layout, 0, 127);
+
+  auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
+  auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
+  auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
   return std::make_tuple(std::move(A), std::move(B), std::move(bias));
 }
 

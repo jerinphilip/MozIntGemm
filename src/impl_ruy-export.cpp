@@ -1,6 +1,13 @@
+#ifndef RUY_BATTERIES_ALREADY_INCLUDED
+
+#define RUY_BATTERIES_ALREADY_INCLUDED
+#include "firefox_interface.h"
 #include "ruy/ruy.h"
+#include "ruy/system_aligned_alloc.h"
 #include <cassert>
-#include <vector>
+#include <cmath>
+
+#endif
 
 #ifndef PRINT_MATRIX_DEBUG
 #define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
@@ -9,12 +16,43 @@
 #endif
 
 namespace detail {
+
+// Ruy equivalent of an intgemm::AlignedVector
+template <class T> class AlignedVector {
+public:
+  AlignedVector(size_t num_elem)
+      : size_(num_elem),
+        storage_(reinterpret_cast<T *>(
+            ruy::detail::SystemAlignedAlloc(sizeof(T) * num_elem))) {}
+
+  T *begin() { return storage_; }
+  T *data() { return storage_; }
+  size_t size() const { return size_; }
+  size_t memSize() const { return sizeof(T) * size_; }
+
+  // Forbid copy
+  AlignedVector(const AlignedVector &) = delete;
+  AlignedVector &operator=(const AlignedVector &) = delete;
+
+  ~AlignedVector() {
+    ruy::detail::SystemAlignedFree(reinterpret_cast<void *>(storage_));
+  }
+
+private:
+  T *storage_;
+  size_t size_;
+};
+
 void quantize(const float *input, float scale, float zero_point, Index rows,
               Index width, int8_t *output) {
   // Dumb quantize we will improve this eventually.
   const Index size = rows * width;
   for (size_t i = 0; i < size; i++) {
-    output[i] = static_cast<int8_t>(scale * input[i] /*- zero_point?*/);
+    float value = round(scale * input[i]);
+    // int8 can't store larger than 127.0f.
+    value = std::max(-127.0f, value);
+    value = std::min(127.0f, value);
+    output[i] = static_cast<int8_t>(value);
   };
 }
 
@@ -110,7 +148,7 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MakeSimpleLayout(rows_A, cols_B, ruy::Order::kRowMajor,
                         dst.mutable_layout());
 
-  std::vector<std::int32_t> dst_data(rows_A * cols_B);
+  detail::AlignedVector<std::int32_t> dst_data(rows_A * cols_B);
   std::int32_t *dest_ptr = dst_data.data();
 
   dst.set_data(dest_ptr);
@@ -120,7 +158,7 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
   // Unquantizes, then adds bias in a single statement on the output.
-  float unquant_multiplier = 1.0f * scale_output / (scale_A * scale_B);
+  float unquant_multiplier = (1.0f * scale_output) / (scale_A * scale_B);
   for (size_t i = 0; i < rows_A; i++) {
     for (size_t j = 0; j < cols_B; j++) {
       Index idx = i * cols_B + j;
