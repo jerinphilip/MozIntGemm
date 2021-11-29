@@ -31,8 +31,10 @@ int main() {
 
   // How many times do we run multiply, so the cost of multiply dominates other
   // costs and ranking becomes clear?
-  const size_t MONTE_CARLO_RUNS = 10000;
+  const size_t MONTE_CARLO_RUNS = 1000;
   auto orderings = Orderings();
+
+  std::vector<double> durations;
 
   for (auto &dimensions : PROBLEM_SIZES) {
     for (auto &ordering : orderings) {
@@ -96,8 +98,21 @@ int main() {
                           std::chrono::steady_clock::now() - start)
                           .count();
 
-      // IO is outside the above. std::endl should flush.
-      // TODO: improve.
+      durations.push_back(duration);
+
+      if (prototyping) {
+        break;
+      }
+    }
+  }
+
+  // Revisit durations vector in th the same order, print this time, outside the
+  // benchmarking code.
+  auto pDuration = durations.begin();
+  for (auto &dimensions : PROBLEM_SIZES) {
+    for (auto &ordering : orderings) {
+      auto [a_order, b_order, c_order] = ordering;
+      auto [M, N, P] = unroll(dimensions);
       auto toString = [](const Order &order) {
         return order == Order::RowMajor ? "RowMajor" : "ColMajor";
       };
@@ -105,11 +120,11 @@ int main() {
       std::cout << M << "x" << N << "x" << P << " | ";
       std::cout << "(" << toString(a_order) << ", " << toString(b_order) << ", "
                 << toString(c_order) << ") | ";
-      std::cout << duration << std::endl;
 
-      if (prototyping) {
+      if (pDuration == durations.end()) {
         break;
       }
+      std::cout << *pDuration++ << std::endl;
     }
   }
   return 0;
