@@ -1,8 +1,9 @@
 #include "firefox_interface.h"
 #include "ruy/ruy.h"
+#include "ruy/system_aligned_alloc.h"
+#include <cassert>
 #include <cmath>
 #include <iostream>
-#include <memory>
 
 #if 0
 #include "matrix.h"
@@ -19,6 +20,7 @@
 namespace pg::Ruy {
 // The following is bad practice. But this makes it easy for @jerinphilip to
 // export the cpp file directly for Mozilla as an implementation.
+#define RUY_BATTERIES_ALREADY_INCLUDED
 #include "impl_ruy-export.cpp"
 
 } // namespace pg::Ruy
