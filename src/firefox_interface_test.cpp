@@ -34,6 +34,7 @@ const float MSE_TOLERANCE = 1e-1;
     forwardCallToNamespace(ns, int8MultiplyAndAddBias);                        \
     forwardCallToNamespace(ns, int8SelectColumnsOfB);                          \
     forwardCallToNamespace(ns, int8PrepareBFromQuantizedTransposed);           \
+    forwardCallToNamespace(ns, int8PrepareBFromTransposed);                    \
   }
 
 namespaceToStructForTemplating(Intgemm);
@@ -317,6 +318,76 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     Matrix<float> ruyProduct(productLayout);
     MultiplyAPreparedBQuantizedTransposedAddBias<_Ruy>(
         A, B_quantized_transposed, bias, ruyProduct.data(), output_scale);
+
+    // Since a reference multiply is tricky here, we simply chose to go with
+    // comparing intgemm and ruy.
+    float mse = MeanSquaredError(ruyProduct, intgemmProduct);
+    DEBUG_PRINTABLE(ruyProduct);
+    DEBUG_PRINTABLE(intgemmProduct);
+
+    ASSERT_LT(mse, MSE_TOLERANCE);
+  };
+  run(gen64, f);
+}
+
+template <class Lib>
+void MultiplyAPreparedBTransposedAddBias(Matrix<float> &A,
+                                         Matrix<float> &B_transposed,
+                                         Matrix<float> &bias, float *output,
+                                         float output_scale) {
+  Matrix<int8_t> mA_prepared(A.layout()), mB_prepared(B_transposed.layout());
+  Matrix<float> mBias_prepared(bias.layout());
+
+  int8_t *A_prepared = mA_prepared.begin();
+  int8_t *B_prepared = mB_prepared.begin();
+  float *bias_prepared = mBias_prepared.begin();
+
+  // Happens offline.
+  // const float *input_B_transposed, float scale, float zero_point, Index
+  // width, Index cols_B, int8_t *output
+  Lib::int8PrepareBFromTransposed(
+      B_transposed.data(), B_transposed.scale(), B_transposed.zero_point(),
+      B_transposed.ncols(), B_transposed.nrows(), B_prepared);
+
+  Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(),
+                       B_transposed.scale(), B_transposed.zero_point(),
+                       B_transposed.ncols(), B_transposed.nrows(), bias.data(),
+                       bias_prepared);
+
+  // Happens online.
+  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                    A_prepared);
+
+  Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
+
+                              B_transposed.scale(), B_transposed.zero_point(),
+
+                              bias_prepared, output_scale, A.nrows(), A.ncols(),
+                              B_transposed.nrows(), output);
+}
+
+TEST(IntgemmVsRuy, PrepareBFromTransposed) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+
+  auto f = [&gen64](size_t M, size_t N, size_t P) {
+    auto [A, B, bias] = generateInput(gen64, M, N, P);
+    Matrix<float> B_transposed = B.transpose();
+
+    DEBUG_PRINTABLE(A);
+    DEBUG_PRINTABLE(B_transposed);
+    DEBUG_PRINTABLE(bias);
+    float output_scale = 1.0f;
+
+    Layout productLayout(M, P, Order::RowMajor);
+
+    Matrix<float> intgemmProduct(productLayout);
+    MultiplyAPreparedBTransposedAddBias<_Intgemm>(
+        A, B_transposed, bias, intgemmProduct.data(), output_scale);
+
+    Matrix<float> ruyProduct(productLayout);
+    MultiplyAPreparedBTransposedAddBias<_Ruy>(A, B_transposed, bias,
+                                              ruyProduct.data(), output_scale);
 
     // Since a reference multiply is tricky here, we simply chose to go with
     // comparing intgemm and ruy.
