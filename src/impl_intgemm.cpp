@@ -27,8 +27,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
                                 float zero_point, Index width, Index cols_B,
                                 int8_t *output) {
-  intgemm::Int8::PrepareBTransposed(input_B_transposed, output, scale, cols_B,
-                                    width);
+  intgemm::Int8::PrepareBTransposed(input_B_transposed, output, scale, width,
+                                    cols_B);
 }
 
 void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
