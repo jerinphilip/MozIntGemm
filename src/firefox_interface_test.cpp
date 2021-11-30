@@ -49,23 +49,19 @@ namespaceToStructForTemplating(Ruy);
 
 void run(std::mt19937_64 &gen64,
          std::function<void(size_t, size_t, size_t)> f) {
-  constexpr size_t DIM_MAX = 128;
-  constexpr size_t DIM_MIN = 64;
+  constexpr size_t DIM_MIN = 1;
+  constexpr size_t DIM_MAX = 8;
   constexpr size_t MC_RUNS = 100;
   for (size_t i = 0; i < MC_RUNS; i++) {
     std::uniform_int_distribution<> distribution(DIM_MIN, DIM_MAX);
 
     size_t M, N, P; // A = M x N matrix, B = N x P
 
-    M = distribution(gen64);
-    N = distribution(gen64);
-    P = distribution(gen64);
-
     // Do some stuff to get stuff rounded to multiples of 8
     const size_t _WIDTH = 64;
-    M = ((M / _WIDTH) + 1) * _WIDTH;
-    N = ((N / _WIDTH) + 1) * _WIDTH;
-    P = ((P / _WIDTH) + 1) * _WIDTH;
+    M = _WIDTH * distribution(gen64);
+    N = _WIDTH * distribution(gen64);
+    P = _WIDTH * distribution(gen64);
 
     // Often in debugging it's convenient to inspect what is happening with a
     // smaller matrix. The follwoing is the smallest we can get to work.
@@ -324,6 +320,7 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
+    DEBUG_PRINTABLE(mse);
 
     ASSERT_LT(mse, MSE_TOLERANCE);
   };
@@ -394,6 +391,7 @@ TEST(IntgemmVsRuy, PrepareBFromTransposed) {
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
+    DEBUG_PRINTABLE(mse);
 
     ASSERT_LT(mse, MSE_TOLERANCE);
   };
