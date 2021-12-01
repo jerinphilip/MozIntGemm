@@ -88,6 +88,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
                                 float zero_point, Index width, Index cols_B,
                                 int8_t *output) {
+  // Assuming B is transposed, we like it transposed(?). What's left is
+  // quantize.
   detail::quantize(input_B_transposed, scale, zero_point, width, cols_B,
                    output);
 }
