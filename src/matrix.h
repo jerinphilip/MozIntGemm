@@ -99,6 +99,17 @@ public:
     std::memcpy(begin(), data, sizeof(Scalar) * layout.num_elem());
   }
 
+  Matrix<Scalar> transpose() {
+    Layout transposed_layout(ncols(), nrows(), layout().order());
+    Matrix<Scalar> transposed(transposed_layout);
+    for (size_t i = 0; i < nrows(); i++) {
+      for (size_t j = 0; j < ncols(); j++) {
+        transposed.at(j, i) = at(i, j);
+      }
+    }
+    return transposed;
+  }
+
   const Layout &layout() const { return layout_; }
   size_t nrows() const { return layout_.rows(); }
   size_t ncols() const { return layout_.cols(); }
