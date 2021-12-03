@@ -1,6 +1,13 @@
+#ifndef RUY_BATTERIES_ALREADY_INCLUDED
+
+#define RUY_BATTERIES_ALREADY_INCLUDED
+#include "firefox_interface.h"
 #include "ruy/ruy.h"
+#include "ruy/system_aligned_alloc.h"
 #include <cassert>
-#include <vector>
+#include <cmath>
+
+#endif
 
 #ifndef PRINT_MATRIX_DEBUG
 #define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
@@ -9,6 +16,33 @@
 #endif
 
 namespace detail {
+
+// Ruy equivalent of an intgemm::AlignedVector
+template <class T> class AlignedVector {
+public:
+  AlignedVector(size_t num_elem)
+      : size_(num_elem),
+        storage_(reinterpret_cast<T *>(
+            ruy::detail::SystemAlignedAlloc(sizeof(T) * num_elem))) {}
+
+  T *begin() { return storage_; }
+  T *data() { return storage_; }
+  size_t size() const { return size_; }
+  size_t memSize() const { return sizeof(T) * size_; }
+
+  // Forbid copy
+  AlignedVector(const AlignedVector &) = delete;
+  AlignedVector &operator=(const AlignedVector &) = delete;
+
+  ~AlignedVector() {
+    ruy::detail::SystemAlignedFree(reinterpret_cast<void *>(storage_));
+  }
+
+private:
+  T *storage_;
+  size_t size_;
+};
+
 void quantize(const float *input, float scale, float zero_point, Index rows,
               Index width, int8_t *output) {
   // Dumb quantize we will improve this eventually.
@@ -54,6 +88,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
                                 float zero_point, Index width, Index cols_B,
                                 int8_t *output) {
+  // Assuming B is transposed, we like it transposed(?). What's left is
+  // quantize.
   detail::quantize(input_B_transposed, scale, zero_point, width, cols_B,
                    output);
 }
@@ -114,7 +150,7 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MakeSimpleLayout(rows_A, cols_B, ruy::Order::kRowMajor,
                         dst.mutable_layout());
 
-  std::vector<std::int32_t> dst_data(rows_A * cols_B);
+  detail::AlignedVector<std::int32_t> dst_data(rows_A * cols_B);
   std::int32_t *dest_ptr = dst_data.data();
 
   dst.set_data(dest_ptr);

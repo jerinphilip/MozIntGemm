@@ -34,6 +34,7 @@ const float MSE_TOLERANCE = 1e-1;
     forwardCallToNamespace(ns, int8MultiplyAndAddBias);                        \
     forwardCallToNamespace(ns, int8SelectColumnsOfB);                          \
     forwardCallToNamespace(ns, int8PrepareBFromQuantizedTransposed);           \
+    forwardCallToNamespace(ns, int8PrepareBFromTransposed);                    \
   }
 
 namespaceToStructForTemplating(Intgemm);
@@ -48,23 +49,19 @@ namespaceToStructForTemplating(Ruy);
 
 void run(std::mt19937_64 &gen64,
          std::function<void(size_t, size_t, size_t)> f) {
-  constexpr size_t DIM_MAX = 128;
-  constexpr size_t DIM_MIN = 64;
+  constexpr size_t DIM_MIN = 1;
+  constexpr size_t DIM_MAX = 8;
   constexpr size_t MC_RUNS = 100;
   for (size_t i = 0; i < MC_RUNS; i++) {
     std::uniform_int_distribution<> distribution(DIM_MIN, DIM_MAX);
 
     size_t M, N, P; // A = M x N matrix, B = N x P
 
-    M = distribution(gen64);
-    N = distribution(gen64);
-    P = distribution(gen64);
-
     // Do some stuff to get stuff rounded to multiples of 8
     const size_t _WIDTH = 64;
-    M = ((M / _WIDTH) + 1) * _WIDTH;
-    N = ((N / _WIDTH) + 1) * _WIDTH;
-    P = ((P / _WIDTH) + 1) * _WIDTH;
+    M = _WIDTH * distribution(gen64);
+    N = _WIDTH * distribution(gen64);
+    P = _WIDTH * distribution(gen64);
 
     // Often in debugging it's convenient to inspect what is happening with a
     // smaller matrix. The follwoing is the smallest we can get to work.
@@ -323,6 +320,78 @@ TEST(IntgemmVsRuy, PrepareBFromQuantizedTransposed) {
     float mse = MeanSquaredError(ruyProduct, intgemmProduct);
     DEBUG_PRINTABLE(ruyProduct);
     DEBUG_PRINTABLE(intgemmProduct);
+    DEBUG_PRINTABLE(mse);
+
+    ASSERT_LT(mse, MSE_TOLERANCE);
+  };
+  run(gen64, f);
+}
+
+template <class Lib>
+void MultiplyAPreparedBTransposedAddBias(Matrix<float> &A,
+                                         Matrix<float> &B_transposed,
+                                         Matrix<float> &bias, float *output,
+                                         float output_scale) {
+  Matrix<int8_t> mA_prepared(A.layout()), mB_prepared(B_transposed.layout());
+  Matrix<float> mBias_prepared(bias.layout());
+
+  int8_t *A_prepared = mA_prepared.begin();
+  int8_t *B_prepared = mB_prepared.begin();
+  float *bias_prepared = mBias_prepared.begin();
+
+  // Happens offline.
+  // const float *input_B_transposed, float scale, float zero_point, Index
+  // width, Index cols_B, int8_t *output
+  Lib::int8PrepareBFromTransposed(
+      B_transposed.data(), B_transposed.scale(), B_transposed.zero_point(),
+      B_transposed.ncols(), B_transposed.nrows(), B_prepared);
+
+  Lib::int8PrepareBias(B_prepared, A.scale(), A.zero_point(),
+                       B_transposed.scale(), B_transposed.zero_point(),
+                       B_transposed.ncols(), B_transposed.nrows(), bias.data(),
+                       bias_prepared);
+
+  // Happens online.
+  Lib::int8PrepareA(A.data(), A.scale(), A.zero_point(), A.nrows(), A.ncols(),
+                    A_prepared);
+
+  Lib::int8MultiplyAndAddBias(A_prepared, A.scale(), A.zero_point(), B_prepared,
+
+                              B_transposed.scale(), B_transposed.zero_point(),
+
+                              bias_prepared, output_scale, A.nrows(), A.ncols(),
+                              B_transposed.nrows(), output);
+}
+
+TEST(IntgemmVsRuy, PrepareBFromTransposed) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+
+  auto f = [&gen64](size_t M, size_t N, size_t P) {
+    auto [A, B, bias] = generateInput(gen64, M, N, P);
+    Matrix<float> B_transposed = B.transpose();
+
+    DEBUG_PRINTABLE(A);
+    DEBUG_PRINTABLE(B_transposed);
+    DEBUG_PRINTABLE(bias);
+    float output_scale = 1.0f;
+
+    Layout productLayout(M, P, Order::RowMajor);
+
+    Matrix<float> intgemmProduct(productLayout);
+    MultiplyAPreparedBTransposedAddBias<_Intgemm>(
+        A, B_transposed, bias, intgemmProduct.data(), output_scale);
+
+    Matrix<float> ruyProduct(productLayout);
+    MultiplyAPreparedBTransposedAddBias<_Ruy>(A, B_transposed, bias,
+                                              ruyProduct.data(), output_scale);
+
+    // Since a reference multiply is tricky here, we simply chose to go with
+    // comparing intgemm and ruy.
+    float mse = MeanSquaredError(ruyProduct, intgemmProduct);
+    DEBUG_PRINTABLE(ruyProduct);
+    DEBUG_PRINTABLE(intgemmProduct);
+    DEBUG_PRINTABLE(mse);
 
     ASSERT_LT(mse, MSE_TOLERANCE);
   };

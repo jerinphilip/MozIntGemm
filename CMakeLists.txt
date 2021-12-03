@@ -6,8 +6,25 @@ project(arm-playground CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+# Adapted from https://stackoverflow.com/a/14934542/4565794
+# Not probably best, but okay for time being. It's ruy that imposes these constraints.
+# https://github.com/google/ruy/blob/8c3fd3f266b4a22d542d4aa41329b5018d6b87e1/ruy/platform.h#L100-L127
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
+    message(FATAL_ERROR "Insufficient gcc version")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "1920")
+    message(FATAL_ERROR "Insufficient msvc version")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "CLANG")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0")
+    message(FATAL_ERROR "Insufficient clang version")
+  endif()
+endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 
 message(${CMAKE_SYSTEM_PROCESSOR})

@@ -18,3 +18,6 @@ if(COMPILE_TESTS)
   include(GoogleTest)
   gtest_discover_tests(firefox_interface_test)
 endif(COMPILE_TESTS)
+
+add_executable(firefox_interface_benchmark firefox_interface_benchmark.cpp)
+target_link_libraries(firefox_interface_benchmark bridge)
