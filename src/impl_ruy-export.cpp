@@ -18,19 +18,6 @@
 
 namespace detail {
 
-void quantize(const float *input, float scale, float zero_point, Index rows,
-              Index width, int8_t *output) {
-  // Dumb quantize we will improve this eventually.
-  const Index size = rows * width;
-  for (size_t i = 0; i < size; i++) {
-    float value = round(scale * input[i]);
-    // int8 can't store larger than 127.0f.
-    value = std::max<float>(-127.0f, value);
-    value = std::min<float>(127.0f, value);
-    output[i] = static_cast<int8_t>(value);
-  };
-}
-
 template <class Scalar>
 void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
   for (size_t i = 0; i < rows; i++) {
@@ -50,8 +37,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
   // called once, offline.
   PRINT_MATRIX_DEBUG(input_B, width, cols_B, Order::RowMajor);
   std::vector<int8_t> B_quantized(width * cols_B);
-  detail::quantize(input_B, scale, zero_point, width, cols_B,
-                   B_quantized.data());
+  detail::Preprocess<detail::kHighestPath>::quantize(
+      input_B, scale, zero_point, width, cols_B, B_quantized.data());
   PRINT_MATRIX_DEBUG(B_quantized.data(), width, cols_B, Order::RowMajor);
 
   // This is a lazy transpose to get overall test correct.
@@ -65,8 +52,8 @@ void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
                                 int8_t *output) {
   // Assuming B is transposed, we like it transposed(?). What's left is
   // quantize.
-  detail::quantize(input_B_transposed, scale, zero_point, width, cols_B,
-                   output);
+  detail::Preprocess<detail::kHighestPath>::quantize(
+      input_B_transposed, scale, zero_point, width, cols_B, output);
 }
 
 void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
@@ -79,7 +66,8 @@ void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
 
 void int8PrepareA(const float *input_A, float scale, float zero_point,
                   Index rows_A, Index width, int8_t *output) {
-  detail::quantize(input_A, scale, zero_point, rows_A, width, output);
+  detail::Preprocess<detail::kHighestPath>::quantize(input_A, scale, zero_point,
+                                                     rows_A, width, output);
 }
 
 void int8PrepareBias(const int8_t *input_B_prepared, float scale_A,

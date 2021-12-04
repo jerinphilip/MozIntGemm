@@ -43,6 +43,12 @@ using Index = std::int32_t;
 struct kStandardCpp {};
 struct kNeon {};
 
+#if RUY_PLATFORM_NEON
+using kHighestPath = kNeon;
+#else
+using kHighestPath = kStandardCpp;
+#endif
+
 template <class Path> struct Preprocess {
   static void quantize(const float *input, float scale, float zero_point,
                        Index rows, Index width, int8_t *output) {
