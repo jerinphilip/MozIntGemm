@@ -13,14 +13,23 @@ add_executable(main main.cpp)
 target_link_libraries(main bridge)
 
 if(COMPILE_TESTS)
-  add_executable(firefox_interface_test firefox_interface_test.cpp)
-  target_link_libraries(firefox_interface_test gtest_main gtest bridge)
+  if(BUILD_ARCH_ARM)
+    add_executable(detail_test detail_test.cpp)
+    target_link_libraries(detail_test gtest_main gtest bridge)
+  else(BUILD_ARCH_ARM)
+    add_executable(firefox_interface_test firefox_interface_test.cpp)
+    target_link_libraries(firefox_interface_test gtest_main gtest bridge)
+  endif(BUILD_ARCH_ARM)
+
   include(GoogleTest)
-  gtest_discover_tests(firefox_interface_test)
+
+  if(BUILD_ARCH_ARM)
+    gtest_discover_tests(detail_test)
+  else(BUILD_ARCH_ARM)
+    gtest_discover_tests(firefox_interface_test)
+  endif(BUILD_ARCH_ARM)
 endif(COMPILE_TESTS)
 
 add_executable(firefox_interface_benchmark firefox_interface_benchmark.cpp)
 target_link_libraries(firefox_interface_benchmark bridge)
 
-add_executable(detail_fast quantize_exps.cpp)
-target_link_libraries(detail_fast bridge)
