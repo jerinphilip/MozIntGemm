@@ -2,6 +2,7 @@
 #include "firefox_interface.h"
 #include "ruy/ruy.h"
 #include "ruy/system_aligned_alloc.h"
+#include <algorithm>
 #include <arm_neon.h>
 #include <cassert>
 #include <cmath>

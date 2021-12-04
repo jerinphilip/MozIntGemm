@@ -5,9 +5,9 @@
 #include "firefox_interface.h"
 #include "ruy/ruy.h"
 #include "ruy/system_aligned_alloc.h"
+#include <algorithm>
 #include <cassert>
 #include <cmath>
-
 #endif
 
 #ifndef PRINT_MATRIX_DEBUG
@@ -25,8 +25,8 @@ void quantize(const float *input, float scale, float zero_point, Index rows,
   for (size_t i = 0; i < size; i++) {
     float value = round(scale * input[i]);
     // int8 can't store larger than 127.0f.
-    value = std::max(-127.0f, value);
-    value = std::min(127.0f, value);
+    value = std::max<float>(-127.0f, value);
+    value = std::min<float>(127.0f, value);
     output[i] = static_cast<int8_t>(value);
   };
 }

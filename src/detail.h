@@ -1,4 +1,5 @@
 #include "ruy/system_aligned_alloc.h"
+#include <algorithm>
 #include <arm_neon.h>
 #include <cmath>
 #include <cstdint>
@@ -48,8 +49,8 @@ template <class Path> struct Preprocess {
 
       // Since float can store bigger values, we threshold anything that's gone
       // higher and can't fit in int8.
-      value = std::max(-127.0f, value);
-      value = std::min(127.0f, value);
+      value = std::max<float>(-127.0f, value);
+      value = std::min<float>(127.0f, value);
 
       // Finally a static cast.
       output[i] = static_cast<int8_t>(value);
