@@ -1,8 +1,12 @@
+#include "ruy/platform.h"
 #include "ruy/system_aligned_alloc.h"
 #include <algorithm>
-#include <arm_neon.h>
 #include <cmath>
 #include <cstdint>
+
+#ifdef RUY_PLATFORM_NEON
+#include <arm_neon.h>
+#endif
 
 namespace pg::Ruy::detail {
 
@@ -58,6 +62,7 @@ template <class Path> struct Preprocess {
   }
 };
 
+#ifdef RUY_PLATFORM_NEON
 template <> struct Preprocess<kNeon> {
   static void quantize(const float *input, float scale, float zero_point,
                        Index rows, Index width, int8_t *output) {
@@ -108,5 +113,6 @@ template <> struct Preprocess<kNeon> {
     };
   }
 };
+#endif
 
 } // namespace pg::Ruy::detail
