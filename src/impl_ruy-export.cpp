@@ -1,6 +1,7 @@
 #ifndef RUY_BATTERIES_ALREADY_INCLUDED
 
 #define RUY_BATTERIES_ALREADY_INCLUDED
+#include "detail.h"
 #include "firefox_interface.h"
 #include "ruy/ruy.h"
 #include "ruy/system_aligned_alloc.h"
@@ -16,32 +17,6 @@
 #endif
 
 namespace detail {
-
-// Ruy equivalent of an intgemm::AlignedVector
-template <class T> class AlignedVector {
-public:
-  AlignedVector(size_t num_elem)
-      : size_(num_elem),
-        storage_(reinterpret_cast<T *>(
-            ruy::detail::SystemAlignedAlloc(sizeof(T) * num_elem))) {}
-
-  T *begin() { return storage_; }
-  T *data() { return storage_; }
-  size_t size() const { return size_; }
-  size_t memSize() const { return sizeof(T) * size_; }
-
-  // Forbid copy
-  AlignedVector(const AlignedVector &) = delete;
-  AlignedVector &operator=(const AlignedVector &) = delete;
-
-  ~AlignedVector() {
-    ruy::detail::SystemAlignedFree(reinterpret_cast<void *>(storage_));
-  }
-
-private:
-  T *storage_;
-  size_t size_;
-};
 
 void quantize(const float *input, float scale, float zero_point, Index rows,
               Index width, int8_t *output) {
