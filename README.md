@@ -20,4 +20,8 @@ Once things work on x86, we'll simply turn off intgemm which doesn't compile on
 ARM and the remaining ruy which is agnostic to x86 or ARM will work and provide
 an implementation of the firefox dictated API.
 
-![image](https://user-images.githubusercontent.com/727292/139909229-7648899c-1d97-4fc7-9def-a310aa815da9.png)
+## relatable xkcd comics 
+
+<img width="300" alt="The pile gets soaked with data and starts to get mushy over time, so it's technically recurrent." src="https://imgs.xkcd.com/comics/machine_learning.png">
+
+<img width="300" alt="How to mess with people who’ve learned to expect rounding errors in floating-point math." src="https://imgs.xkcd.com/comics/e_to_the_pi_minus_pi.png">
