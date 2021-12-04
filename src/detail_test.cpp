@@ -23,7 +23,7 @@ void Quantize(Matrix<float> &input, Matrix<int8_t> &output) {
                              input.ncols(), output.data());
 }
 
-TEST(PreprocOnARM, NeonVsStandard) {
+TEST(PreprocOnARM, QuantizeNeonVsStandard) {
   std::mt19937_64 gen64;
   const size_t M = 8, N = 64, P = 64;
   auto [A, B, bias] = generateInput(gen64, M, N, P);
@@ -36,6 +36,30 @@ TEST(PreprocOnARM, NeonVsStandard) {
 
   const float MSE_TOLERANCE = 1e-9;
   auto mse = MeanSquaredError(quantizedAStd, quantizedANeon);
+  ASSERT_LT(mse, MSE_TOLERANCE);
+  DEBUG_PRINTABLE(mse);
+}
+
+template <class Path>
+void Transpose(Matrix<float> &input, Matrix<int8_t> &output) {
+  Preprocess<Path>::quantize(input.data(), 127.0f, 0, input.nrows(),
+                             input.ncols(), output.data());
+}
+
+TEST(PreprocOnARM, TransposeNeonVsStandard) {
+  std::mt19937_64 gen64;
+  const size_t M = 8, N = 64, P = 64;
+  auto [A, B, bias] = generateInput(gen64, M, N, P);
+  Matrix<int8_t> transposedAStd(A.layout().transpose()),
+      transposedANeon(A.layout().transpose());
+
+  Transpose<kStandardCpp>(A, transposedAStd);
+  Quantize<kNeon>(A, transposedANeon);
+  DEBUG_PRINTABLE(transposedAStd);
+  DEBUG_PRINTABLE(transposedANeon);
+
+  const float MSE_TOLERANCE = 1e-9;
+  auto mse = MeanSquaredError(transposedAStd, transposedANeon);
   ASSERT_LT(mse, MSE_TOLERANCE);
   DEBUG_PRINTABLE(mse);
 }

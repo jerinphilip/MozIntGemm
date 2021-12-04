@@ -66,6 +66,16 @@ template <class Path> struct Preprocess {
       output[i] = static_cast<int8_t>(value);
     };
   }
+
+  template <class Scalar>
+  static void transpose(const Scalar *input, Index rows, Index cols,
+                        Scalar *output) {
+    for (size_t i = 0; i < rows; i++) {
+      for (size_t j = 0; j < cols; j++) {
+        output[j * rows + i] = input[i * cols + j];
+      }
+    }
+  }
 };
 
 #if RUY_PLATFORM_NEON
@@ -117,6 +127,12 @@ template <> struct Preprocess<kNeon> {
       *Output = s8x8;
       ++Output;
     };
+  }
+
+  template <class Scalar>
+  static void transpose(const Scalar *input, Index rows, Index cols,
+                        Scalar *output) {
+    std::abort();
   }
 };
 #endif

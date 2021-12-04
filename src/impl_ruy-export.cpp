@@ -16,19 +16,6 @@
   } while (0)
 #endif
 
-namespace detail {
-
-template <class Scalar>
-void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
-  for (size_t i = 0; i < rows; i++) {
-    for (size_t j = 0; j < cols; j++) {
-      output[j * rows + i] = input[i * cols + j];
-    }
-  }
-}
-
-} // namespace detail
-
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
   // Client matrix is expected to be row-major. We are allowed to change
@@ -44,7 +31,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
   // This is a lazy transpose to get overall test correct.
   // TODO(jerinphilip): Fix with optimized fixed-size transpose reuse.
   // Look for: Permutation instructions.
-  detail::transpose(B_quantized.data(), width, cols_B, output);
+  detail::Preprocess<detail::kHighestPath>::transpose(B_quantized.data(), width,
+                                                      cols_B, output);
 }
 
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
