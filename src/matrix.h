@@ -11,6 +11,8 @@
 
 namespace pg {
 
+using Index = std::uint32_t;
+
 enum class Order { RowMajor, ColMajor };
 
 class Layout {

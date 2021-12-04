@@ -1,6 +1,8 @@
+#include "detail.h"
 #include "firefox_interface.h"
 #include "ruy/ruy.h"
 #include "ruy/system_aligned_alloc.h"
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <iostream>
