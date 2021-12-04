@@ -42,8 +42,8 @@ TEST(PreprocOnARM, QuantizeNeonVsStandard) {
 
 template <class Path>
 void Transpose(Matrix<float> &input, Matrix<int8_t> &output) {
-  Preprocess<Path>::quantize(input.data(), 127.0f, 0, input.nrows(),
-                             input.ncols(), output.data());
+  Preprocess<Path>::transpose(input.data(), 127.0f, 0, input.nrows(),
+                              input.ncols(), output.data());
 }
 
 TEST(PreprocOnARM, TransposeNeonVsStandard) {
