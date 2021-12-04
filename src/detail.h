@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdint>
 
-#ifdef RUY_PLATFORM_NEON
+#if RUY_PLATFORM_NEON
 #include <arm_neon.h>
 #endif
 
@@ -62,7 +62,7 @@ template <class Path> struct Preprocess {
   }
 };
 
-#ifdef RUY_PLATFORM_NEON
+#if RUY_PLATFORM_NEON
 template <> struct Preprocess<kNeon> {
   static void quantize(const float *input, float scale, float zero_point,
                        Index rows, Index width, int8_t *output) {
