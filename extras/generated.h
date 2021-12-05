@@ -10,6 +10,22 @@ struct ProblemSize {
   size_t P;
 };
 
+struct Hasher {
+  size_t operator()(const ProblemSize &psize) const {
+    std::hash<size_t> hasher;
+    std::size_t seed = psize.M;
+    seed ^= hasher(psize.N) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= hasher(psize.P) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+  }
+};
+
+struct Equals {
+  size_t operator()(const ProblemSize &a, const ProblemSize &b) const {
+    return a.M == b.M and a.N == b.N and a.P == b.P;
+  }
+};
+
 // Convenience
 inline std::tuple<size_t, size_t, size_t> unroll(const ProblemSize &psize) {
   return std::make_tuple(psize.M, psize.N, psize.P);
