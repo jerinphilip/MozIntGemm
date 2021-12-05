@@ -1,71 +1,8 @@
-#ifndef RUY_BATTERIES_ALREADY_INCLUDED
-
-#define RUY_BATTERIES_ALREADY_INCLUDED
-#include "firefox_interface.h"
-#include "ruy/ruy.h"
-#include "ruy/system_aligned_alloc.h"
-#include <cassert>
-#include <cmath>
-
-#endif
-
 #ifndef PRINT_MATRIX_DEBUG
 #define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
   do {                                                                         \
   } while (0)
 #endif
-
-namespace detail {
-
-// Ruy equivalent of an intgemm::AlignedVector
-template <class T> class AlignedVector {
-public:
-  AlignedVector(size_t num_elem)
-      : size_(num_elem),
-        storage_(reinterpret_cast<T *>(
-            ruy::detail::SystemAlignedAlloc(sizeof(T) * num_elem))) {}
-
-  T *begin() { return storage_; }
-  T *data() { return storage_; }
-  size_t size() const { return size_; }
-  size_t memSize() const { return sizeof(T) * size_; }
-
-  // Forbid copy
-  AlignedVector(const AlignedVector &) = delete;
-  AlignedVector &operator=(const AlignedVector &) = delete;
-
-  ~AlignedVector() {
-    ruy::detail::SystemAlignedFree(reinterpret_cast<void *>(storage_));
-  }
-
-private:
-  T *storage_;
-  size_t size_;
-};
-
-void quantize(const float *input, float scale, float zero_point, Index rows,
-              Index width, int8_t *output) {
-  // Dumb quantize we will improve this eventually.
-  const Index size = rows * width;
-  for (size_t i = 0; i < size; i++) {
-    float value = round(scale * input[i]);
-    // int8 can't store larger than 127.0f.
-    value = std::max(-127.0f, value);
-    value = std::min(127.0f, value);
-    output[i] = static_cast<int8_t>(value);
-  };
-}
-
-template <class Scalar>
-void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
-  for (size_t i = 0; i < rows; i++) {
-    for (size_t j = 0; j < cols; j++) {
-      output[j * rows + i] = input[i * cols + j];
-    }
-  }
-}
-
-} // namespace detail
 
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
@@ -75,8 +12,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
   // called once, offline.
   PRINT_MATRIX_DEBUG(input_B, width, cols_B, Order::RowMajor);
   std::vector<int8_t> B_quantized(width * cols_B);
-  detail::quantize(input_B, scale, zero_point, width, cols_B,
-                   B_quantized.data());
+  detail::Preprocess<detail::kHighestPath>::quantize(
+      input_B, scale, zero_point, width, cols_B, B_quantized.data());
   PRINT_MATRIX_DEBUG(B_quantized.data(), width, cols_B, Order::RowMajor);
 
   // This is a lazy transpose to get overall test correct.
@@ -90,8 +27,8 @@ void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
                                 int8_t *output) {
   // Assuming B is transposed, we like it transposed(?). What's left is
   // quantize.
-  detail::quantize(input_B_transposed, scale, zero_point, width, cols_B,
-                   output);
+  detail::Preprocess<detail::kHighestPath>::quantize(
+      input_B_transposed, scale, zero_point, width, cols_B, output);
 }
 
 void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
@@ -104,7 +41,8 @@ void int8PrepareBFromQuantizedTransposed(const int8_t *input_B_quant_transposed,
 
 void int8PrepareA(const float *input_A, float scale, float zero_point,
                   Index rows_A, Index width, int8_t *output) {
-  detail::quantize(input_A, scale, zero_point, rows_A, width, output);
+  detail::Preprocess<detail::kHighestPath>::quantize(input_A, scale, zero_point,
+                                                     rows_A, width, output);
 }
 
 void int8PrepareBias(const int8_t *input_B_prepared, float scale_A,

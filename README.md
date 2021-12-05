@@ -4,20 +4,53 @@
 ![x86-tests](https://github.com/jerinphilip/arm-playground/actions/workflows/tests.yml/badge.svg)
 
 
-Need to support a backend for arm for bergamot-translator. Easy way is to
-integrate arm support into [intgemm](https://github.com/kpu/intgemm), copying
-over stuff from [ruy](https://github.com/google/ruy). This repository is meant
-to help with the task... or something. 
+## Objective
 
-Objective: ASSERT(Multiply-By-Ruy = Multiply-By-Intgemm), on x86. These will work as tests here.
+A target-agnostic matrix multiply interface suitable for WASM was checked in by
+collaborators at Mozilla for purposes of speeding up translations in
+https://github.com/browsermt/marian-dev/pull/49.
 
-* [src/firefox\_interface.inl](src/firefox_interface.inl): Interface dictated by firefox for compatibility with something inside firefox.
-* [src/firefox\_interface.h](src/firefox_interface.h): Duplicates interface specified by firefox to be implemented by ruy and intgemm both.
-* [src/impl\_ruy-export.cpp](src/impl_ruy-export.cpp): Implementation of the above interface in ruy.
-* [src/impl\_intgemm.cpp](src/impl_intgemm.cpp): Implementation of the above interface in intgemm. This is adapted from [wasm\_fallback\_interface.cpp](https://github.com/browsermt/marian-dev/blob/master/src/tensors/cpu/wasm_intgemm_fallback.cpp) provided by Abhishek Aggarwal.
+While the original support was intended for x86-64 based architectures through
+[kpu/intgemm](https://github.com/kpu/intgemm), and the above mentioned
+interface written closely bound to
+[kpu/intgemm](https://github.com/kpu/intgemm), a demand surfaced for support for ARM.
 
-Once things work on x86, we'll simply turn off intgemm which doesn't compile on
-ARM and the remaining ruy which is agnostic to x86 or ARM will work and provide
-an implementation of the firefox dictated API.
+This repository takes the interface provided by Mozilla and attempts to provide an
+implementation for the interface using
+[google/ruy](https://github.com/google/ruy/) in the short-term.
 
-![image](https://user-images.githubusercontent.com/727292/139909229-7648899c-1d97-4fc7-9def-a310aa815da9.png)
+The library target which uses either ruy or intgemm depending on platform is
+available as `moz_intgemm`. Most of the sources are in
+[MozIntGemm](./MozIntGemm) directory.
+
+## Testing and Benchmarking
+
+A translation-workload for marian is a composition of the functions specified
+in the Mozilla interface. To check correctness, all we have to do is a certain
+sequence of operations used through
+[kpu/intgemm](https://github.com/kpu/intgemm) implementation gives the same
+output when used through [google/ruy](https://github.com/google/ruy).
+
+Testing for correctness happens on the x86 backend, which ruy and intgemm
+support.  When intgemm is turned off on ARM (where it lacks support) and ruy
+allowed to take over, we get an ARM backend for bergamot-translator's matrix multiplies.
+
+### Status
+
+| Function                            | Correctness | Optimized for performance(?) |
+| ----------------------------------- | ------------| --------------------------   |
+| int8PrepareB                        | Yes         | In-Progress (Transpose)      |
+| int8PrepareBFromTransposed          | Yes         | Yes                          |
+| int8PrepareBFromQuantizedTransposed | Yes         | Yes                          |
+| int8PrepareA                        | Yes         | Yes                          |
+| int8PrepareBias                     | Yes         | Yes                          |
+| int8SelectColumsOfB                 | Yes         | Yes                          |
+| int8MultiplyAndAddBias              | Yes         | In-Progress (Unquantize)     |
+
+
+## relatable xkcd comics 
+
+<img width="600" alt="How to mess with people who’ve learned to expect rounding errors in floating-point math." src="https://imgs.xkcd.com/comics/e_to_the_pi_minus_pi.png">
+
+<img width="300" alt="The pile gets soaked with data and starts to get mushy over time, so it's technically recurrent." src="https://imgs.xkcd.com/comics/machine_learning.png">
+
