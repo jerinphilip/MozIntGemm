@@ -3,7 +3,7 @@ if(BUILD_ARCH_ARM)
     set(SOURCES moz_intgemm_ruy.cpp)
     set(EXT_LIBS ruy)
 else(BUILD_ARCH_ARM)
-    set(SOURCES moz_intvemm_intgemm.cpp)
+    set(SOURCES moz_intgemm_intgemm.cpp)
     set(EXT_LIBS intgemm)
 endif(BUILD_ARCH_ARM)
 
