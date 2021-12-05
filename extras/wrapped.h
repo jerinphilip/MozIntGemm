@@ -19,7 +19,6 @@
 
 #if RUY_PLATFORM_X86
 #include "3rd-party/intgemm/intgemm/intgemm.h"
-#include "moz_intgemm.h"
 #include <cstdint>
 #include <iostream>
 #endif
