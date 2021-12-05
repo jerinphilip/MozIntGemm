@@ -41,20 +41,23 @@ TEST(PreprocOnARM, QuantizeNeonVsStandard) {
 }
 
 template <class Path>
-void Transpose(Matrix<float> &input, Matrix<int8_t> &output) {
-  Preprocess<Path>::transpose(input.data(), 127.0f, 0, input.nrows(),
-                              input.ncols(), output.data());
+void Transpose(Matrix<int8_t> &input, Matrix<int8_t> &output) {
+  Preprocess<Path>::transpose(input.data(), input.nrows(), input.ncols(),
+                              output.data());
 }
 
 TEST(PreprocOnARM, TransposeNeonVsStandard) {
   std::mt19937_64 gen64;
+  gen64.seed(42);
+
   const size_t M = 8, N = 64, P = 64;
-  auto [A, B, bias] = generateInput(gen64, M, N, P);
+  Layout layout(M, N, Order::RowMajor);
+  auto A = make_random_matrix<int8_t>(gen64, layout, -127, 127);
   Matrix<int8_t> transposedAStd(A.layout().transpose()),
       transposedANeon(A.layout().transpose());
 
   Transpose<kStandardCpp>(A, transposedAStd);
-  Quantize<kNeon>(A, transposedANeon);
+  Transpose<kNeon>(A, transposedANeon);
   DEBUG_PRINTABLE(transposedAStd);
   DEBUG_PRINTABLE(transposedANeon);
 

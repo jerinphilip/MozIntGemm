@@ -132,7 +132,7 @@ template <> struct Preprocess<kNeon> {
   template <class Scalar>
   static void transpose(const Scalar *input, Index rows, Index cols,
                         Scalar *output) {
-    std::abort();
+    return;
   }
 };
 #endif
