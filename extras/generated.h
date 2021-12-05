@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include <tuple>
+#include <vector>
 
 namespace pg {
 
@@ -11,8 +11,8 @@ struct ProblemSize {
 };
 
 // Convenience
-inline std::tuple<size_t, size_t, size_t> unroll(const ProblemSize &psize){
-    return std::make_tuple(psize.M, psize.N, psize.P);
+inline std::tuple<size_t, size_t, size_t> unroll(const ProblemSize &psize) {
+  return std::make_tuple(psize.M, psize.N, psize.P);
 }
 
 static const std::vector<ProblemSize> PROBLEM_SIZES = {
@@ -1856,4 +1856,4 @@ static const std::vector<ProblemSize> PROBLEM_SIZES = {
     {1, 256, 256},    {1, 256, 1536},   {1, 1536, 256},   {1, 256, 256},
     {1, 256, 256},    {1, 256, 256},    {1, 256, 256},    {1, 256, 1536},
     {1, 1536, 256},   {1, 256, 6040}};
-}
+} // namespace pg

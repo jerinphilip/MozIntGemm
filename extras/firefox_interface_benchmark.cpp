@@ -1,3 +1,4 @@
+#include "generated.h"
 #include "matrix.h"
 #include "wrapped.h"
 #include <chrono>
@@ -60,7 +61,7 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
                        bias_prepared);
 
   auto start = std::chrono::steady_clock::now();
-  for (size_t i = 0; i < 1000; i++) {
+  for (size_t i = 0; i < 100; i++) {
     // The following happens online, on arrival of input, activations and
     // imminent multiply.
     // std::cout << "Iter " << i << ": Prepare A...\n";
@@ -80,7 +81,7 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
 int main(int argc, char **argv) {
   std::mt19937_64 gen64;
   gen64.seed(42);
-  size_t M = 1024, N = 1024, P = 1024;
+  auto [M, N, P] = unroll(PROBLEM_SIZES[0]);
   auto [A, B, bias] = generateInput(gen64, M, N, P);
   Matrix<float> output(Layout(M, P, Order::RowMajor));
 
