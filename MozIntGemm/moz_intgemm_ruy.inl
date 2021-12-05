@@ -1,33 +1,8 @@
-#ifndef RUY_BATTERIES_ALREADY_INCLUDED
-
-#define RUY_BATTERIES_ALREADY_INCLUDED
-#include "detail.h"
-#include "firefox_interface.h"
-#include "ruy/ruy.h"
-#include "ruy/system_aligned_alloc.h"
-#include <algorithm>
-#include <cassert>
-#include <cmath>
-#endif
-
 #ifndef PRINT_MATRIX_DEBUG
 #define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
   do {                                                                         \
   } while (0)
 #endif
-
-namespace detail {
-
-template <class Scalar>
-void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
-  for (size_t i = 0; i < rows; i++) {
-    for (size_t j = 0; j < cols; j++) {
-      output[j * rows + i] = input[i * cols + j];
-    }
-  }
-}
-
-} // namespace detail
 
 void int8PrepareB(const float *input_B, float scale, float zero_point,
                   Index width, Index cols_B, int8_t *output) {
