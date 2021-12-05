@@ -1,14 +1,13 @@
-#include "ruy/platform.h"
-#include "ruy/system_aligned_alloc.h"
-#include <algorithm>
-#include <cmath>
-#include <cstdint>
+namespace detail {
 
-#if RUY_PLATFORM_NEON
-#include <arm_neon.h>
-#endif
-
-namespace pg::Ruy::detail {
+template <class Scalar>
+void transpose(const Scalar *input, Index rows, Index cols, Scalar *output) {
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = 0; j < cols; j++) {
+      output[j * rows + i] = input[i * cols + j];
+    }
+  }
+}
 
 template <class T> class AlignedVector {
 public:
@@ -34,8 +33,6 @@ private:
   T *storage_;
   size_t size_;
 };
-
-using Index = std::int32_t;
 
 // TODO: Workout similar to ruy. enum value is causing type/value complaints.
 // Intentions are to get the functions to exist together without flouting
@@ -137,4 +134,4 @@ template <> struct Preprocess<kNeon> {
 };
 #endif
 
-} // namespace pg::Ruy::detail
+} // namespace detail

@@ -1,16 +1,3 @@
-/** A fallback (non-optimized) implementation of "wasm_gemm_interface.h"
- * interface for integer matrix multiplication for wasm target.
- *
- * This implementation is built and exported from the main module and can serve
- * as a polyfill (fallback) for browsers that don't support an optimized
- * implementation of "wasm_gemm_interface.h".
- */
-
-#include "3rd-party/intgemm/intgemm/intgemm.h"
-#include "firefox_interface.h"
-#include <iostream>
-
-namespace pg::Intgemm {
 
 void int8PrepareA(const float *input_A, float scale, float zero_point,
                   Index rows_A, Index width, int8_t *output) {
@@ -69,4 +56,3 @@ void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,
   intgemm::Int8::SelectColumnsB(input_B_prepared, output, width, cols,
                                 cols + num_cols);
 }
-} // namespace pg::Intgemm

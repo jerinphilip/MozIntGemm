@@ -1,5 +1,5 @@
-#include "detail.h"
 #include "matrix.h"
+#include "wrapped.h"
 #include "gtest/gtest.h"
 #include <algorithm>
 #include <cstdlib>

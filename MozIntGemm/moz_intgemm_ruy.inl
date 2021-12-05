@@ -1,15 +1,3 @@
-#ifndef RUY_BATTERIES_ALREADY_INCLUDED
-
-#define RUY_BATTERIES_ALREADY_INCLUDED
-#include "detail.h"
-#include "firefox_interface.h"
-#include "ruy/ruy.h"
-#include "ruy/system_aligned_alloc.h"
-#include <algorithm>
-#include <cassert>
-#include <cmath>
-#endif
-
 #ifndef PRINT_MATRIX_DEBUG
 #define PRINT_MATRIX_DEBUG(d, rows, cols, order)                               \
   do {                                                                         \
