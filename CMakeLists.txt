@@ -46,4 +46,5 @@ if(COMPILE_TESTS)
   enable_testing()
 endif(COMPILE_TESTS)
 
-add_subdirectory(src)
+add_subdirectory(MozIntGemm)
+add_subdirectory(extras)
