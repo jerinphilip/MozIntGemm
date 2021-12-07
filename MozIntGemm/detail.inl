@@ -162,6 +162,6 @@ template <> struct Preprocess<kNeon> {
       }
     }
   }
+};
 #endif
-}; // namespace detail
 } // namespace detail
