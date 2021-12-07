@@ -134,6 +134,21 @@ template <> struct Preprocess<kNeon> {
                                 float unquant_multiplier, Index rows_A,
                                 Index cols_B, float *output) {
     // TODO(Optimized neon implementation)
+    float32x4_t multiplier = vdupq_n_f32(unquant_multiplier);
+    const int32x4_t *Input = reinterpret_cast<const int32x4_t *>(input);
+    float32x4_t *Output = reinterpret_cast<float32x4_t *>(output);
+    for (size_t i = 0; i < rows_A; i++) {
+      const int32x4_t *InputEnd = reinterpret_cast<const int32x4_t *>(
+          reinterpret_cast<const int32_t *>(Input) + cols_B);
+      const float32x4_t *Bias =
+          reinterpret_cast<const float32x4_t *>(input_bias_prepared);
+
+      while (Input != InputEnd) {
+        float32x4_t floatInput = vcvtq_f32_s32(*Input++);
+        float32x4_t unquantized = vmulq_f32(floatInput, multiplier);
+        *Output++ = vaddq_f32(unquantized, *Bias++);
+      }
+    }
   }
 };
 #endif
