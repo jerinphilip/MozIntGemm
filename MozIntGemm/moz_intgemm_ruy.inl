@@ -98,14 +98,9 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 
   // Unquantizes, then adds bias in a single statement on the output.
-  float unquant_multiplier = (1.0f * scale_output) / (scale_A * scale_B);
-  for (size_t i = 0; i < rows_A; i++) {
-    for (size_t j = 0; j < cols_B; j++) {
-      Index idx = i * cols_B + j;
-      output[idx] =
-          (dest_ptr[idx] * unquant_multiplier) + input_bias_prepared[j];
-    }
-  }
+  detail::Preprocess<detail::kHighestPath>::unquantizeAddBias(
+      dest_ptr, input_bias_prepared, scale_A, scale_B, rows_A, cols_B,
+      scale_output, output);
 }
 
 void int8SelectColumnsOfB(const int8_t *input_B_prepared, Index width,

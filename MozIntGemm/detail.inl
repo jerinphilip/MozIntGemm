@@ -63,6 +63,20 @@ template <class Path> struct Preprocess {
       output[i] = static_cast<int8_t>(value);
     };
   }
+
+  static void unquantizeAddBias(const int32_t *input,
+                                const float *input_bias_prepared, float scale_A,
+                                float scale_B, Index rows_A, Index cols_B,
+                                float scale_output, float *output) {
+    float unquant_multiplier = (1.0f * scale_output) / (scale_A * scale_B);
+    for (size_t i = 0; i < rows_A; i++) {
+      for (size_t j = 0; j < cols_B; j++) {
+        Index idx = i * cols_B + j;
+        output[idx] =
+            (input[idx] * unquant_multiplier) + input_bias_prepared[j];
+      }
+    }
+  }
 };
 
 #if RUY_PLATFORM_NEON
