@@ -133,13 +133,7 @@ template <> struct Preprocess<kNeon> {
                                 const float *input_bias_prepared,
                                 float unquant_multiplier, Index rows_A,
                                 Index cols_B, float *output) {
-    for (size_t i = 0; i < rows_A; i++) {
-      for (size_t j = 0; j < cols_B; j++) {
-        Index idx = i * cols_B + j;
-        output[idx] =
-            (input[idx] * unquant_multiplier) + input_bias_prepared[j];
-      }
-    }
+    // TODO(Optimized neon implementation)
   }
 };
 #endif
