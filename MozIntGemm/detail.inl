@@ -63,6 +63,19 @@ template <class Path> struct Preprocess {
       output[i] = static_cast<int8_t>(value);
     };
   }
+
+  static void unquantizeAddBias(const int32_t *input,
+                                const float *input_bias_prepared,
+                                float unquant_multiplier, Index rows_A,
+                                Index cols_B, float *output) {
+    for (size_t i = 0; i < rows_A; i++) {
+      for (size_t j = 0; j < cols_B; j++) {
+        Index idx = i * cols_B + j;
+        output[idx] =
+            (input[idx] * unquant_multiplier) + input_bias_prepared[j];
+      }
+    }
+  }
 };
 
 #if RUY_PLATFORM_NEON
@@ -114,6 +127,34 @@ template <> struct Preprocess<kNeon> {
       *Output = s8x8;
       ++Output;
     };
+  }
+
+  static void unquantizeAddBias(const int32_t *input,
+                                const float *input_bias_prepared,
+                                float unquant_multiplier, Index rows_A,
+                                Index cols_B, float *output) {
+    // Set all registers in lane from same scalar value.
+    float32x4_t multiplier = vdupq_n_f32(unquant_multiplier);
+    const int32x4_t *Input = reinterpret_cast<const int32x4_t *>(input);
+    float32x4_t *Output = reinterpret_cast<float32x4_t *>(output);
+
+    for (size_t i = 0; i < rows_A; i++) {
+      // Bias cycles every column for addition.
+      const float32x4_t *Bias =
+          reinterpret_cast<const float32x4_t *>(input_bias_prepared);
+
+      // InputEnd needs to be determined to end the while loop below.
+      const int32x4_t *InputEnd = reinterpret_cast<const int32x4_t *>(
+          reinterpret_cast<const int32_t *>(Input) + cols_B);
+
+      while (Input != InputEnd) {
+        // Operation happening for 4-elements together:
+        // output = [int32_t]input * [float]quant_mult + [float]bias;
+        float32x4_t floatInput = vcvtq_f32_s32(*Input++);
+        float32x4_t unquantized = vmulq_f32(floatInput, multiplier);
+        *Output++ = vaddq_f32(unquantized, *Bias++);
+      }
+    }
   }
 };
 #endif

@@ -172,6 +172,17 @@ make_random_matrix<int8_t>(std::mt19937_64 &gen64, const Layout &layout,
 }
 
 template <>
+inline Matrix<int32_t>
+make_random_matrix<int32_t>(std::mt19937_64 &gen64, const Layout &layout,
+                            const int32_t minVal, const int32_t maxVal) {
+  Matrix<int32_t> matrix(layout);
+  std::uniform_int_distribution<> distribution(minVal, maxVal);
+  std::generate(matrix.begin(), matrix.end(),
+                [&gen64, &distribution]() { return distribution(gen64); });
+  return matrix;
+}
+
+template <>
 Matrix<float> inline make_random_matrix<float>(std::mt19937_64 &gen64,
                                                const Layout &layout,
                                                const float minVal,
