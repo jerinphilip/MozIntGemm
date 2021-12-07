@@ -45,7 +45,7 @@ allowed to take over, we get an ARM backend for bergamot-translator's matrix mul
 | int8PrepareA                        | Yes         | Yes                          |
 | int8PrepareBias                     | Yes         | Yes                          |
 | int8SelectColumsOfB                 | Yes         | Yes                          |
-| int8MultiplyAndAddBias              | Yes         | In-Progress (Unquantize)     |
+| int8MultiplyAndAddBias              | Yes         | Yes                          |
 
 
 ## relatable xkcd comics 
