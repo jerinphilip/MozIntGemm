@@ -142,18 +142,20 @@ template <> struct Preprocess<kNeon> {
     // Set all registers in lane from same scalar value.
     float32x4_t multiplier = vdupq_n_f32(unquant_multiplier);
     const int32x4_t *Input = reinterpret_cast<const int32x4_t *>(input);
+    const int32x4_t *InputEnd =
+        reinterpret_cast<const int32x4_t *>(input + rows_A * cols_B);
     float32x4_t *Output = reinterpret_cast<float32x4_t *>(output);
 
-    for (size_t i = 0; i < rows_A; i++) {
+    while (Input != InputEnd) {
       // Bias cycles every column for addition.
       const float32x4_t *Bias =
           reinterpret_cast<const float32x4_t *>(input_bias_prepared);
 
       // InputEnd needs to be determined to end the while loop below.
-      const int32x4_t *InputEnd = reinterpret_cast<const int32x4_t *>(
+      const int32x4_t *RowEnd = reinterpret_cast<const int32x4_t *>(
           reinterpret_cast<const int32_t *>(Input) + cols_B);
 
-      while (Input != InputEnd) {
+      while (Input != RowEnd) {
         // Operation happening for 4-elements together:
         // output = [int32_t]input * [float]quant_mult + [float]bias;
         float32x4_t floatInput = vcvtq_f32_s32(*Input++);
