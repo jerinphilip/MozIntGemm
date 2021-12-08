@@ -91,6 +91,7 @@ std::ostream &operator<<(std::ostream &out,
 
 template <class Scalar> class Matrix {
 public:
+  using dtype = Scalar;
   using iterator = Scalar *;
   using const_iterator = const Scalar *;
   Matrix(const Layout &layout) : layout_(layout), matrix_(layout.num_elem()) {}
@@ -284,6 +285,20 @@ generateInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P) {
   auto A = make_random_matrix<float>(gen64, a_layout, -1.0f, 1.0f);
   auto B = make_random_matrix<float>(gen64, b_layout, -1.0f, 1.0f);
   auto bias = make_random_matrix<float>(gen64, bias_layout, -1.0f, 1.0f);
+  return std::make_tuple(std::move(A), std::move(B), std::move(bias));
+}
+
+inline std::tuple<Matrix<int8_t>, Matrix<int8_t>, Matrix<int8_t>>
+generateIntegralInput(std::mt19937_64 &gen64, size_t M, size_t N, size_t P,
+                      const std::tuple<Order, Order, Order> &ordering) {
+  auto [a_order, b_order, c_order] = ordering;
+  Layout a_layout(M, N, a_order);
+  Layout b_layout(N, P, b_order);
+  Layout bias_layout(1, P, b_order);
+
+  auto A = make_random_matrix<int8_t>(gen64, a_layout, -127, 127);
+  auto B = make_random_matrix<int8_t>(gen64, b_layout, -127, 127);
+  auto bias = make_random_matrix<int8_t>(gen64, bias_layout, -127, 127);
   return std::make_tuple(std::move(A), std::move(B), std::move(bias));
 }
 

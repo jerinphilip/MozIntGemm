@@ -1,3 +1,4 @@
+#include "generated.h"
 #include "matrix.h"
 #include "wrapped.h"
 #include <chrono>
@@ -5,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <random>
+#include <unordered_map>
 
 namespace {
 
@@ -60,7 +62,7 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
                        bias_prepared);
 
   auto start = std::chrono::steady_clock::now();
-  for (size_t i = 0; i < 1000; i++) {
+  for (size_t i = 0; i < 100; i++) {
     // The following happens online, on arrival of input, activations and
     // imminent multiply.
     // std::cout << "Iter " << i << ": Prepare A...\n";
@@ -80,7 +82,34 @@ double MultiplyABAddBias(Matrix<float> &A, Matrix<float> &B,
 int main(int argc, char **argv) {
   std::mt19937_64 gen64;
   gen64.seed(42);
-  size_t M = 1024, N = 1024, P = 1024;
+
+  // Find the most occuring problem-size. If tie, find the largest.
+  std::unordered_map<ProblemSize, size_t, Hasher, Equals> counter;
+  for (auto &psize : PROBLEM_SIZES) {
+    if (counter.find(psize) == counter.end()) {
+      counter[psize] = 0;
+    }
+    ++counter[psize];
+  }
+
+  ProblemSize argmaxP;
+  size_t maxP = 0;
+  for (auto &p : counter) {
+    auto num_elem = [](const ProblemSize &p) { return p.M * p.N * p.P; };
+    if (num_elem(argmaxP) < num_elem(p.first)) {
+      maxP = p.second;
+      argmaxP = p.first;
+    } else if (num_elem(argmaxP) == num_elem(p.first)) {
+      if (maxP < p.second) {
+        maxP = p.second;
+        argmaxP = p.first;
+      }
+    }
+  }
+
+  auto [M, N, P] = unroll(argmaxP);
+  std::cout << "Matrix size: " << M << "x" << N << "; " << N << "x" << P
+            << "\n";
   auto [A, B, bias] = generateInput(gen64, M, N, P);
   Matrix<float> output(Layout(M, P, Order::RowMajor));
 

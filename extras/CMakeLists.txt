@@ -23,3 +23,5 @@ endif(COMPILE_TESTS)
 add_executable(firefox_interface_benchmark firefox_interface_benchmark.cpp)
 target_link_libraries(firefox_interface_benchmark bridge)
 
+add_executable(benchmark_empirical_multiply benchmark_empirical_multiply.cpp)
+target_link_libraries(benchmark_empirical_multiply bridge)
