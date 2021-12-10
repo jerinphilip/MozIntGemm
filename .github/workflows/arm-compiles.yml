@@ -73,6 +73,11 @@ jobs:
         MINSDK_VERSION=28
         ANDROID_PLATFORM=28
 
+        LEMONADE_ARGS=(
+            -DCOMPILE_TESTS=OFF
+            -DCOMPILE_BENCHMARKS=ON
+        )
+
 
         OTHER_ANDROID_ARGS=(
             -DANDROID_ARM_NEON=TRUE
@@ -95,7 +100,7 @@ jobs:
             -DANDROID_TOOLCHAIN_NAME=arm-linux-androideabi-4.8 \
             -DANDROID_STL=c++_static \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            "${OTHER_ANDROID_ARGS[@]}" "${OTHER_MARIAN_ARGS[@]}" \
+            "${OTHER_ANDROID_ARGS[@]}" "${OTHER_MARIAN_ARGS[@]}" "${LEMONADE_ARGS[@]}" \
             ..
 
     - name : Build library for android
