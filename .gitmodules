@@ -4,6 +4,3 @@
 [submodule "3rd-party/ruy"]
 	path = 3rd-party/ruy
 	url = https://github.com/google/ruy
-[submodule "3rd-party/cpuinfo"]
-	path = 3rd-party/cpuinfo
-	url = https://github.com/pytorch/cpuinfo.git
