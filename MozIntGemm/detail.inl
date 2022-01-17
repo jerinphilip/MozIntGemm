@@ -136,9 +136,9 @@ template <> struct Preprocess<kNeon> {
     return;
   }
 
-  static void transpose_16x16(const int16_t *src, int16_t *dst) {
+  static void transpose_8x8(const int16_t *src, int16_t *dst) {
     // clang-format off
-    constexpr size_t width = 16;
+    constexpr size_t width = 8;
     int16x8x2_t t0 = vtrnq_s16(vld1q_s16(&src[0*width]), vld1q_s16(&src[1*width]));
     int16x8x2_t t1 = vtrnq_s16(vld1q_s16(&src[2*width]), vld1q_s16(&src[3*width]));
     int16x8x2_t t2 = vtrnq_s16(vld1q_s16(&src[4*width]), vld1q_s16(&src[5*width]));
