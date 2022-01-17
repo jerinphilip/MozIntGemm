@@ -132,8 +132,37 @@ template <> struct Preprocess<kNeon> {
   template <class Scalar>
   static void transpose(const Scalar *input, Index rows, Index cols,
                         Scalar *output) {
+    // We're fixing this.. are we?
     return;
   }
+
+  static void transpose_16x16(const int16_t *src, int16_t *dst) {
+    // clang-format off
+    constexpr size_t width = 16;
+    int16x8x2_t t0 = vtrnq_s16(vld1q_s16(&src[0*width]), vld1q_s16(&src[1*width]));
+    int16x8x2_t t1 = vtrnq_s16(vld1q_s16(&src[2*width]), vld1q_s16(&src[3*width]));
+    int16x8x2_t t2 = vtrnq_s16(vld1q_s16(&src[4*width]), vld1q_s16(&src[5*width]));
+    int16x8x2_t t3 = vtrnq_s16(vld1q_s16(&src[6*width]), vld1q_s16(&src[7*width]));
+
+    int32x4x2_t x0 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[0]), vreinterpretq_s32_s16(t1.val[0]));
+    int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[0]), vreinterpretq_s32_s16(t3.val[0]));
+    int32x4x2_t x2 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[1]), vreinterpretq_s32_s16(t1.val[1]));
+    int32x4x2_t x3 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
+
+    vst1q_s16(&dst[0*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[0]), vget_low_s32(x1.val[0]))));
+    vst1q_s16(&dst[1*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[0]), vget_low_s32(x3.val[0]))));
+    vst1q_s16(&dst[2*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[1]), vget_low_s32(x1.val[1]))));
+    vst1q_s16(&dst[3*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[1]), vget_low_s32(x3.val[1]))));
+    vst1q_s16(&dst[4*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x1.val[0]))));
+    vst1q_s16(&dst[5*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x3.val[0]))));
+    vst1q_s16(&dst[6*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x1.val[1]))));
+    vst1q_s16(&dst[7*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x3.val[1]))));
+    // clang-format on
+  }
+
+  // Specialization for int8_t
+  static void transpose(const int8_t *input, Index rows, Index cols,
+                        int8_t *output) {}
 
   static void unquantizeAddBias(const int32_t *input,
                                 const float *input_bias_prepared,

@@ -98,4 +98,28 @@ TEST(PreprocOnARM, UnquantizeAddBiasNeonVsStandard) {
   DEBUG_PRINTABLE(mse);
 }
 
+TEST(PreprocOnARM, TransposeDriver) {
+  constexpr size_t tile = 16;
+  constexpr size_t block = tile * tile;
+  std::vector<int16_t> src(block), dst(block);
+  std::iota(src.begin(), src.end(), 0);
+  std::fill(dst.begin(), dst.end(), 0);
+  Preprocess<kNeon>::transpose_16x16(src.data(), dst.data());
+  auto print = [tile, block](const std::vector<auto> &m) {
+    for (size_t i = 0; i < tile; i++) {
+      for (size_t j = 0; j < tile; j++) {
+        if (j != 0) {
+          std::cout << " ";
+        }
+        auto v = m[i * tile + j];
+        std::cout << std::setfill('0') << std::setw(3) << v;
+      }
+      std::cout << "\n";
+    }
+  };
+
+  print(src);
+  print(dst);
+}
+
 } // namespace
