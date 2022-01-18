@@ -174,27 +174,6 @@ template <> struct Preprocess<kNeon> {
     int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*width]), vld1q_s8(&src[15*width]));
 
 
-    vst1q_s8(&dst[ 0*width], (r0.val[0]));
-    vst1q_s8(&dst[ 2*width], (r1.val[0]));
-    vst1q_s8(&dst[ 4*width], (r2.val[0]));
-    vst1q_s8(&dst[ 6*width], (r3.val[0]));
-    vst1q_s8(&dst[ 8*width], (r4.val[0]));
-    vst1q_s8(&dst[10*width], (r5.val[0]));
-    vst1q_s8(&dst[12*width], (r6.val[0]));
-    vst1q_s8(&dst[14*width], (r7.val[0]));
-
-    vst1q_s8(&dst[ 1*width], (r0.val[1]));
-    vst1q_s8(&dst[ 3*width], (r1.val[1]));
-    vst1q_s8(&dst[ 5*width], (r2.val[1]));
-    vst1q_s8(&dst[ 7*width], (r3.val[1]));
-    vst1q_s8(&dst[ 9*width], (r4.val[1]));
-    vst1q_s8(&dst[11*width], (r5.val[1]));
-    vst1q_s8(&dst[13*width], (r6.val[1]));
-    vst1q_s8(&dst[15*width], (r7.val[1]));
-
-    // return;
-
-
     int16_t *dst_r = reinterpret_cast<int16_t*>(dst);
     constexpr int width_8 = 8;
 
@@ -214,34 +193,55 @@ template <> struct Preprocess<kNeon> {
 
     vst1q_s8(&dst[0*width], vreinterpretq_s8_s16(t0.val[0]));
     vst1q_s8(&dst[1*width], vreinterpretq_s8_s16(t4.val[0]));
-
     vst1q_s8(&dst[2*width], vreinterpretq_s8_s16(t0.val[1]));
     vst1q_s8(&dst[3*width], vreinterpretq_s8_s16(t4.val[1]));
 
     vst1q_s8(&dst[4*width], vreinterpretq_s8_s16(t1.val[0]));
     vst1q_s8(&dst[5*width], vreinterpretq_s8_s16(t5.val[0]));
-
     vst1q_s8(&dst[6*width], vreinterpretq_s8_s16(t1.val[1]));
     vst1q_s8(&dst[7*width], vreinterpretq_s8_s16(t5.val[1]));
 
     vst1q_s8(&dst[8*width], vreinterpretq_s8_s16(t2.val[0]));
     vst1q_s8(&dst[9*width], vreinterpretq_s8_s16(t6.val[0]));
-
     vst1q_s8(&dst[10*width], vreinterpretq_s8_s16(t2.val[1]));
     vst1q_s8(&dst[11*width], vreinterpretq_s8_s16(t6.val[1]));
 
     vst1q_s8(&dst[12*width], vreinterpretq_s8_s16(t3.val[0]));
     vst1q_s8(&dst[13*width], vreinterpretq_s8_s16(t7.val[0]));
-
     vst1q_s8(&dst[14*width], vreinterpretq_s8_s16(t3.val[1]));
     vst1q_s8(&dst[15*width], vreinterpretq_s8_s16(t7.val[1]));
 
-    return;
+    // return;
 
     int32x4x2_t x0 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[0]), vreinterpretq_s32_s16(t1.val[0]));
-    int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[0]), vreinterpretq_s32_s16(t3.val[0]));
+    int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t4.val[0]), vreinterpretq_s32_s16(t5.val[0]));
     int32x4x2_t x2 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[1]), vreinterpretq_s32_s16(t1.val[1]));
-    int32x4x2_t x3 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
+    int32x4x2_t x3 = vtrnq_s32(vreinterpretq_s32_s16(t4.val[1]), vreinterpretq_s32_s16(t5.val[1]));
+
+    int32x4x2_t x4 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[0]), vreinterpretq_s32_s16(t3.val[0]));
+    int32x4x2_t x5 = vtrnq_s32(vreinterpretq_s32_s16(t6.val[0]), vreinterpretq_s32_s16(t7.val[0]));
+    int32x4x2_t x6 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
+    int32x4x2_t x7 = vtrnq_s32(vreinterpretq_s32_s16(t6.val[1]), vreinterpretq_s32_s16(t7.val[1]));
+
+    vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(x0.val[0]));
+    vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(x1.val[0]));
+    vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(x2.val[0]));
+    vst1q_s8(&dst[3*width], vreinterpretq_s8_s32(x3.val[0]));
+
+    vst1q_s8(&dst[4*width], vreinterpretq_s8_s32(x0.val[1]));
+    vst1q_s8(&dst[5*width], vreinterpretq_s8_s32(x1.val[1]));
+    vst1q_s8(&dst[6*width], vreinterpretq_s8_s32(x2.val[1]));
+    vst1q_s8(&dst[7*width], vreinterpretq_s8_s32(x3.val[1]));
+    vst1q_s8(&dst[8*width], vreinterpretq_s8_s32(x5.val[0]));
+
+    vst1q_s8(&dst[9*width], vreinterpretq_s8_s32(x6.val[0]));
+    vst1q_s8(&dst[10*width], vreinterpretq_s8_s32(x4.val[0]));
+    vst1q_s8(&dst[11*width], vreinterpretq_s8_s32(x6.val[1]));
+
+    vst1q_s8(&dst[12*width], vreinterpretq_s8_s32(x4.val[1]));
+    vst1q_s8(&dst[13*width], vreinterpretq_s8_s32(x7.val[0]));
+    vst1q_s8(&dst[14*width], vreinterpretq_s8_s32(x5.val[1]));
+    vst1q_s8(&dst[15*width], vreinterpretq_s8_s32(x7.val[1]));
 
     /*
     vst1q_s16(&dst_r[0*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[0]), vget_low_s32(x1.val[0]))));
