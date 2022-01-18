@@ -136,34 +136,9 @@ template <> struct Preprocess<kNeon> {
     return;
   }
 
-  static void transpose_8x8(const int16_t *src, int16_t *dst) {
-    // clang-format off
-    constexpr size_t width = 8;
-    int16x8x2_t t0 = vtrnq_s16(vld1q_s16(&src[0*width]), vld1q_s16(&src[1*width]));
-    int16x8x2_t t1 = vtrnq_s16(vld1q_s16(&src[2*width]), vld1q_s16(&src[3*width]));
-    int16x8x2_t t2 = vtrnq_s16(vld1q_s16(&src[4*width]), vld1q_s16(&src[5*width]));
-    int16x8x2_t t3 = vtrnq_s16(vld1q_s16(&src[6*width]), vld1q_s16(&src[7*width]));
-
-    int32x4x2_t x0 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[0]), vreinterpretq_s32_s16(t1.val[0]));
-    int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[0]), vreinterpretq_s32_s16(t3.val[0]));
-    int32x4x2_t x2 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[1]), vreinterpretq_s32_s16(t1.val[1]));
-    int32x4x2_t x3 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
-
-    vst1q_s16(&dst[0*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[0]), vget_low_s32(x1.val[0]))));
-    vst1q_s16(&dst[1*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[0]), vget_low_s32(x3.val[0]))));
-    vst1q_s16(&dst[2*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[1]), vget_low_s32(x1.val[1]))));
-    vst1q_s16(&dst[3*width], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[1]), vget_low_s32(x3.val[1]))));
-    vst1q_s16(&dst[4*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x1.val[0]))));
-    vst1q_s16(&dst[5*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x3.val[0]))));
-    vst1q_s16(&dst[6*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x1.val[1]))));
-    vst1q_s16(&dst[7*width], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x3.val[1]))));
-    // clang-format on
-  }
-
   static void transpose_16x16(const int8_t *src, int8_t *dst) {
-    // clang-format off
     constexpr size_t width = 16;
-
+    // clang-format off
     int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*width]), vld1q_s8(&src[ 1*width]));
     int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*width]), vld1q_s8(&src[ 3*width]));
     int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*width]), vld1q_s8(&src[ 5*width]));
@@ -174,13 +149,6 @@ template <> struct Preprocess<kNeon> {
     int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*width]), vld1q_s8(&src[15*width]));
 
 
-    int16_t *dst_r = reinterpret_cast<int16_t*>(dst);
-    constexpr int width_8 = 8;
-
-    // Elements are 8-bit and transposed. We now go for double the width.
-    // Previously load instructions existed here. All we have to do is keep the
-    // right registers.
-    
     int16x8x2_t t0 = vtrnq_s16(vreinterpretq_s16_s8(r0.val[0]), vreinterpretq_s16_s8(r1.val[0]));
     int16x8x2_t t1 = vtrnq_s16(vreinterpretq_s16_s8(r2.val[0]), vreinterpretq_s16_s8(r3.val[0]));
     int16x8x2_t t2 = vtrnq_s16(vreinterpretq_s16_s8(r4.val[0]), vreinterpretq_s16_s8(r5.val[0]));
@@ -190,28 +158,6 @@ template <> struct Preprocess<kNeon> {
     int16x8x2_t t6 = vtrnq_s16(vreinterpretq_s16_s8(r4.val[1]), vreinterpretq_s16_s8(r5.val[1]));
     int16x8x2_t t7 = vtrnq_s16(vreinterpretq_s16_s8(r6.val[1]), vreinterpretq_s16_s8(r7.val[1]));
     
-
-    vst1q_s8(&dst[0*width], vreinterpretq_s8_s16(t0.val[0]));
-    vst1q_s8(&dst[1*width], vreinterpretq_s8_s16(t4.val[0]));
-    vst1q_s8(&dst[2*width], vreinterpretq_s8_s16(t0.val[1]));
-    vst1q_s8(&dst[3*width], vreinterpretq_s8_s16(t4.val[1]));
-
-    vst1q_s8(&dst[4*width], vreinterpretq_s8_s16(t1.val[0]));
-    vst1q_s8(&dst[5*width], vreinterpretq_s8_s16(t5.val[0]));
-    vst1q_s8(&dst[6*width], vreinterpretq_s8_s16(t1.val[1]));
-    vst1q_s8(&dst[7*width], vreinterpretq_s8_s16(t5.val[1]));
-
-    vst1q_s8(&dst[8*width], vreinterpretq_s8_s16(t2.val[0]));
-    vst1q_s8(&dst[9*width], vreinterpretq_s8_s16(t6.val[0]));
-    vst1q_s8(&dst[10*width], vreinterpretq_s8_s16(t2.val[1]));
-    vst1q_s8(&dst[11*width], vreinterpretq_s8_s16(t6.val[1]));
-
-    vst1q_s8(&dst[12*width], vreinterpretq_s8_s16(t3.val[0]));
-    vst1q_s8(&dst[13*width], vreinterpretq_s8_s16(t7.val[0]));
-    vst1q_s8(&dst[14*width], vreinterpretq_s8_s16(t3.val[1]));
-    vst1q_s8(&dst[15*width], vreinterpretq_s8_s16(t7.val[1]));
-
-    // return;
 
     int32x4x2_t x0 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[0]), vreinterpretq_s32_s16(t1.val[0]));
     int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t4.val[0]), vreinterpretq_s32_s16(t5.val[0]));
@@ -223,14 +169,14 @@ template <> struct Preprocess<kNeon> {
     int32x4x2_t x6 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
     int32x4x2_t x7 = vtrnq_s32(vreinterpretq_s32_s16(t6.val[1]), vreinterpretq_s32_s16(t7.val[1]));
 
-    vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_high_s32(x5.val[0])))); 
-    vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_high_s32(x6.val[0]))));
-    vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_high_s32(x4.val[0]))));
-    vst1q_s8(&dst[3*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[0]), vget_high_s32(x6.val[1]))));
-    vst1q_s8(&dst[4*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[1]), vget_high_s32(x4.val[1]))));
-    vst1q_s8(&dst[5*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[1]), vget_high_s32(x7.val[0]))));
-    vst1q_s8(&dst[6*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[1]), vget_high_s32(x5.val[1]))));
-    vst1q_s8(&dst[7*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
+    vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_low_s32(x5.val[0])))); 
+    vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_low_s32(x6.val[0]))));
+    vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_low_s32(x4.val[0]))));
+    vst1q_s8(&dst[3*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[0]), vget_low_s32(x6.val[1]))));
+    vst1q_s8(&dst[4*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[1]), vget_low_s32(x4.val[1]))));
+    vst1q_s8(&dst[5*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[1]), vget_low_s32(x7.val[0]))));
+    vst1q_s8(&dst[6*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[1]), vget_low_s32(x5.val[1]))));
+    vst1q_s8(&dst[7*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[1]), vget_low_s32(x7.val[1]))));
     vst1q_s8(&dst[8*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x5.val[0]))));
     vst1q_s8(&dst[9*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x6.val[0]))));
     vst1q_s8(&dst[10*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x4.val[0]))));
@@ -239,17 +185,6 @@ template <> struct Preprocess<kNeon> {
     vst1q_s8(&dst[13*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x7.val[0]))));
     vst1q_s8(&dst[14*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x5.val[1]))));
     vst1q_s8(&dst[15*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
-
-    /*
-    vst1q_s16(&dst_r[0*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[0]), vget_low_s32(x1.val[0]))));
-    vst1q_s16(&dst_r[1*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[0]), vget_low_s32(x3.val[0]))));
-    vst1q_s16(&dst_r[2*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[1]), vget_low_s32(x1.val[1]))));
-    vst1q_s16(&dst_r[3*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[1]), vget_low_s32(x3.val[1]))));
-    vst1q_s16(&dst_r[4*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x1.val[0]))));
-    vst1q_s16(&dst_r[5*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x3.val[0]))));
-    vst1q_s16(&dst_r[6*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x1.val[1]))));
-    vst1q_s16(&dst_r[7*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x3.val[1]))));
-    */
 
     // clang-format on
   }
