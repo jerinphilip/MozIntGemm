@@ -39,7 +39,7 @@ allowed to take over, we get an ARM backend for bergamot-translator's matrix mul
 
 | Function                            | Correctness | Optimized for performance(?) |
 | ----------------------------------- | ------------| --------------------------   |
-| int8PrepareB                        | Yes         | In-Progress (Transpose)      |
+| int8PrepareB                        | Yes         | Yes                          |
 | int8PrepareBFromTransposed          | Yes         | Yes                          |
 | int8PrepareBFromQuantizedTransposed | Yes         | Yes                          |
 | int8PrepareA                        | Yes         | Yes                          |

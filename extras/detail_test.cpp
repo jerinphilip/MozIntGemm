@@ -41,6 +41,33 @@ TEST(PreprocOnARM, QuantizeNeonVsStandard) {
 }
 
 template <class Path>
+void Transpose(Matrix<int8_t> &input, Matrix<int8_t> &output) {
+  Preprocess<Path>::transpose(input.data(), input.nrows(), input.ncols(),
+                              output.data());
+}
+
+TEST(PreprocOnARM, TransposeNeonVsStandard) {
+  std::mt19937_64 gen64;
+  gen64.seed(42);
+
+  const size_t M = 8, N = 64, P = 64;
+  Layout layout(M, N, Order::RowMajor);
+  auto A = make_random_matrix<int8_t>(gen64, layout, -127, 127);
+  Matrix<int8_t> transposedAStd(A.layout().transpose()),
+      transposedANeon(A.layout().transpose());
+
+  Transpose<kStandardCpp>(A, transposedAStd);
+  Transpose<kNeon>(A, transposedANeon);
+  DEBUG_PRINTABLE(transposedAStd);
+  DEBUG_PRINTABLE(transposedANeon);
+
+  const float MSE_TOLERANCE = 1e-9;
+  auto mse = MeanSquaredError(transposedAStd, transposedANeon);
+  ASSERT_LT(mse, MSE_TOLERANCE);
+  DEBUG_PRINTABLE(mse);
+}
+
+template <class Path>
 void UnQuantizeAddBias(Matrix<int32_t> &intermediate, Matrix<float> &bias,
                        Matrix<float> &output) {
   float unquant_multiplier = 1 / 127.0f;
@@ -69,6 +96,56 @@ TEST(PreprocOnARM, UnquantizeAddBiasNeonVsStandard) {
   auto mse = MeanSquaredError(outputStd, outputNeon);
   ASSERT_LT(mse, MSE_TOLERANCE);
   DEBUG_PRINTABLE(mse);
+}
+
+TEST(PreprocOnARM, TransposeDriver) {
+  constexpr size_t tile = 16;
+  constexpr size_t block = tile * tile;
+  auto print = [tile, block](const std::vector<auto> &m) {
+    for (size_t i = 0; i < tile; i++) {
+      for (size_t j = 0; j < tile; j++) {
+        if (j != 0) {
+          std::cout << " ";
+        }
+        auto v = m[i * tile + j];
+        std::cout << std::setfill('0') << std::setw(3)
+                  << static_cast<int>(v) + 128;
+      }
+      std::cout << "\n";
+    }
+  };
+
+  std::vector<int8_t> src(block), dst(block);
+
+  std::iota(src.begin(), src.end(), -128);
+  std::fill(dst.begin(), dst.end(), 0);
+  std::cout << "Before: "
+            << "\n";
+
+  std::cout << "src:\n";
+  print(src);
+
+  std::cout << "tgt:\n";
+  print(dst);
+
+  Preprocess<kNeon>::_transpose_16x16(reinterpret_cast<int8_t *>(src.data()), 0,
+                                      0, tile, tile,
+                                      reinterpret_cast<int8_t *>(dst.data()));
+
+  std::cout << "After: "
+            << "\n";
+
+  std::cout << "src:\n";
+  print(src);
+
+  std::cout << "tgt:\n";
+  print(dst);
+
+  for (size_t i = 0; i < tile; i++) {
+    for (size_t j = 0; j < tile; j++) {
+      ASSERT_EQ(src[i * tile + j], dst[j * tile + i]);
+    }
+  }
 }
 
 } // namespace

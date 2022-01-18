@@ -19,7 +19,8 @@ void int8PrepareB(const float *input_B, float scale, float zero_point,
   // This is a lazy transpose to get overall test correct.
   // TODO(jerinphilip): Fix with optimized fixed-size transpose reuse.
   // Look for: Permutation instructions.
-  detail::transpose(B_quantized.data(), width, cols_B, output);
+  detail::Preprocess<detail::kHighestPath>::transpose(B_quantized.data(), width,
+                                                      cols_B, output);
 }
 
 void int8PrepareBFromTransposed(const float *input_B_transposed, float scale,
