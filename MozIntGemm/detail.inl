@@ -169,21 +169,22 @@ template <> struct Preprocess<kNeon> {
     int32x4x2_t x6 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
     int32x4x2_t x7 = vtrnq_s32(vreinterpretq_s32_s16(t6.val[1]), vreinterpretq_s32_s16(t7.val[1]));
 
-    vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_low_s32(x5.val[0])))); 
-    vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_low_s32(x6.val[0]))));
-    vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_low_s32(x4.val[0]))));
-    vst1q_s8(&dst[3*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[0]), vget_low_s32(x6.val[1]))));
+    vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_low_s32(x4.val[0])))); 
+    vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_low_s32(x5.val[0]))));
+    vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_low_s32(x6.val[0]))));
+    vst1q_s8(&dst[3*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[0]), vget_low_s32(x7.val[0]))));
     vst1q_s8(&dst[4*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[1]), vget_low_s32(x4.val[1]))));
-    vst1q_s8(&dst[5*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[1]), vget_low_s32(x7.val[0]))));
-    vst1q_s8(&dst[6*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[1]), vget_low_s32(x5.val[1]))));
+    vst1q_s8(&dst[5*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[1]), vget_low_s32(x5.val[1]))));
+    vst1q_s8(&dst[6*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[1]), vget_low_s32(x6.val[1]))));
     vst1q_s8(&dst[7*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[1]), vget_low_s32(x7.val[1]))));
-    vst1q_s8(&dst[8*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x5.val[0]))));
-    vst1q_s8(&dst[9*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x6.val[0]))));
-    vst1q_s8(&dst[10*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x4.val[0]))));
-    vst1q_s8(&dst[11*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[0]), vget_high_s32(x6.val[1]))));
+
+    vst1q_s8(&dst[8*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x4.val[0]))));
+    vst1q_s8(&dst[9*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x5.val[0]))));
+    vst1q_s8(&dst[10*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x6.val[0]))));
+    vst1q_s8(&dst[11*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[0]), vget_high_s32(x7.val[0]))));
     vst1q_s8(&dst[12*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x4.val[1]))));
-    vst1q_s8(&dst[13*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x7.val[0]))));
-    vst1q_s8(&dst[14*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x5.val[1]))));
+    vst1q_s8(&dst[13*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x5.val[1]))));
+    vst1q_s8(&dst[14*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x6.val[1]))));
     vst1q_s8(&dst[15*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
 
     // clang-format on
