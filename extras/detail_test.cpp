@@ -116,6 +116,7 @@ TEST(PreprocOnARM, TransposeDriver) {
   };
 
   std::vector<int8_t> src(block), dst(block);
+
   std::iota(src.begin(), src.end(), -128);
   std::fill(dst.begin(), dst.end(), 0);
   std::cout << "Before: "
