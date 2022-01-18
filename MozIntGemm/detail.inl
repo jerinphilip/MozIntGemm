@@ -136,7 +136,8 @@ template <> struct Preprocess<kNeon> {
     return;
   }
 
-  static void transpose_16x16(const int8_t *src, int8_t *dst) {
+  static void _transpose_16x16(const int8_t *src, Index i, Index j, Index rows,
+                               Index cols, int8_t *dst) {
     // Implemented following the algorithm described in
     // https://stackoverflow.com/a/29587984/4565794
     //
@@ -151,14 +152,16 @@ template <> struct Preprocess<kNeon> {
     
     // Permute 8 8-bit rows.
     // Load int8x16x2 from memory into SIMD registers, transpose as 2x2 matrices.
-    int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*width]), vld1q_s8(&src[ 1*width]));
-    int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*width]), vld1q_s8(&src[ 3*width]));
-    int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*width]), vld1q_s8(&src[ 5*width]));
-    int8x16x2_t r3 = vtrnq_s8(vld1q_s8(&src[ 6*width]), vld1q_s8(&src[ 7*width]));
-    int8x16x2_t r4 = vtrnq_s8(vld1q_s8(&src[ 8*width]), vld1q_s8(&src[ 9*width]));
-    int8x16x2_t r5 = vtrnq_s8(vld1q_s8(&src[10*width]), vld1q_s8(&src[11*width]));
-    int8x16x2_t r6 = vtrnq_s8(vld1q_s8(&src[12*width]), vld1q_s8(&src[13*width]));
-    int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*width]), vld1q_s8(&src[15*width]));
+    Index rowBegin = i*cols + j;
+
+    int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*cols + rowBegin]), vld1q_s8(&src[ 1*cols + rowBegin]));
+    int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*cols + rowBegin]), vld1q_s8(&src[ 3*cols + rowBegin]));
+    int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*cols + rowBegin]), vld1q_s8(&src[ 5*cols + rowBegin]));
+    int8x16x2_t r3 = vtrnq_s8(vld1q_s8(&src[ 6*cols + rowBegin]), vld1q_s8(&src[ 7*cols + rowBegin]));
+    int8x16x2_t r4 = vtrnq_s8(vld1q_s8(&src[ 8*cols + rowBegin]), vld1q_s8(&src[ 9*cols + rowBegin]));
+    int8x16x2_t r5 = vtrnq_s8(vld1q_s8(&src[10*cols + rowBegin]), vld1q_s8(&src[11*cols + rowBegin]));
+    int8x16x2_t r6 = vtrnq_s8(vld1q_s8(&src[12*cols + rowBegin]), vld1q_s8(&src[13*cols + rowBegin]));
+    int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*cols + rowBegin]), vld1q_s8(&src[15*cols + rowBegin]));
 
 
     // Permute 8 16-bit rows.
@@ -187,30 +190,40 @@ template <> struct Preprocess<kNeon> {
 
     // There is no permute 8 64-bit rows available. 
     // Instead we follow extracting low and high and placing them into the right places.
-    vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_low_s32(x4.val[0])))); 
-    vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_low_s32(x5.val[0]))));
-    vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_low_s32(x6.val[0]))));
-    vst1q_s8(&dst[3*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[0]), vget_low_s32(x7.val[0]))));
-    vst1q_s8(&dst[4*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[1]), vget_low_s32(x4.val[1]))));
-    vst1q_s8(&dst[5*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[1]), vget_low_s32(x5.val[1]))));
-    vst1q_s8(&dst[6*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[1]), vget_low_s32(x6.val[1]))));
-    vst1q_s8(&dst[7*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[1]), vget_low_s32(x7.val[1]))));
+    Index tgtRowBegin = j*rows + i;
+    vst1q_s8(&dst[ 0*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_low_s32(x4.val[0])))); 
+    vst1q_s8(&dst[ 1*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_low_s32(x5.val[0]))));
+    vst1q_s8(&dst[ 2*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_low_s32(x6.val[0]))));
+    vst1q_s8(&dst[ 3*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[0]), vget_low_s32(x7.val[0]))));
+    vst1q_s8(&dst[ 4*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[1]), vget_low_s32(x4.val[1]))));
+    vst1q_s8(&dst[ 5*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[1]), vget_low_s32(x5.val[1]))));
+    vst1q_s8(&dst[ 6*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[1]), vget_low_s32(x6.val[1]))));
+    vst1q_s8(&dst[ 7*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x3.val[1]), vget_low_s32(x7.val[1]))));
 
-    vst1q_s8(&dst[8*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x4.val[0]))));
-    vst1q_s8(&dst[9*width], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x5.val[0]))));
-    vst1q_s8(&dst[10*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x6.val[0]))));
-    vst1q_s8(&dst[11*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[0]), vget_high_s32(x7.val[0]))));
-    vst1q_s8(&dst[12*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x4.val[1]))));
-    vst1q_s8(&dst[13*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x5.val[1]))));
-    vst1q_s8(&dst[14*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x6.val[1]))));
-    vst1q_s8(&dst[15*width], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
+    vst1q_s8(&dst[ 8*rows + tgtRowBegin], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x4.val[0]))));
+    vst1q_s8(&dst[ 9*rows + tgtRowBegin], vreinterpretq_s8_s32 (vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x5.val[0]))));
+    vst1q_s8(&dst[10*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x6.val[0]))));
+    vst1q_s8(&dst[11*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[0]), vget_high_s32(x7.val[0]))));
+    vst1q_s8(&dst[12*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x4.val[1]))));
+    vst1q_s8(&dst[13*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x5.val[1]))));
+    vst1q_s8(&dst[14*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x6.val[1]))));
+    vst1q_s8(&dst[15*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
 
     // clang-format on
   }
 
   // Specialization for int8_t
   static void transpose(const int8_t *input, Index rows, Index cols,
-                        int8_t *output) {}
+                        int8_t *output) {
+    constexpr size_t tile_size = 16;
+    // TODO(jerin): Enable
+    // assert(rows % tile_size == 0 && cols & tile_size == 0);
+    for (size_t i = 0; i < rows; i += tile_size) {
+      for (size_t j = 0; j < cols; j += tile_size) {
+        _transpose_16x16(input, i, j, rows, cols, output);
+      }
+    }
+  }
 
   static void unquantizeAddBias(const int32_t *input,
                                 const float *input_bias_prepared,

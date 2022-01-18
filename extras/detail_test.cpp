@@ -127,8 +127,9 @@ TEST(PreprocOnARM, TransposeDriver) {
   std::cout << "tgt:\n";
   print(dst);
 
-  Preprocess<kNeon>::transpose_16x16(reinterpret_cast<int8_t *>(src.data()),
-                                     reinterpret_cast<int8_t *>(dst.data()));
+  Preprocess<kNeon>::_transpose_16x16(reinterpret_cast<int8_t *>(src.data()), 0,
+                                      0, tile, tile,
+                                      reinterpret_cast<int8_t *>(dst.data()));
 
   std::cout << "After: "
             << "\n";
