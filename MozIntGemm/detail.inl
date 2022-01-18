@@ -137,6 +137,19 @@ template <> struct Preprocess<kNeon> {
     std::abort();
   }
 
+  // Specialization for int8_t
+  static void transpose(const int8_t *input, Index rows, Index cols,
+                        int8_t *output) {
+    constexpr size_t tile_size = 16;
+    // TODO(jerin): Enable
+    // assert(rows % tile_size == 0 && cols & tile_size == 0);
+    for (size_t i = 0; i < rows; i += tile_size) {
+      for (size_t j = 0; j < cols; j += tile_size) {
+        _transpose_16x16(input, i, j, rows, cols, output);
+      }
+    }
+  }
+
   static void _transpose_16x16(const int8_t *src, Index i, Index j, Index rows,
                                Index cols, int8_t *dst) {
     // Implemented following the algorithm described in
@@ -146,8 +159,6 @@ template <> struct Preprocess<kNeon> {
     // permute n 64-bit rows
     // ...
     // permute n simd_width/2-bit rows
-
-    constexpr size_t width = 16;
 
     // clang-format off
     
@@ -211,19 +222,6 @@ template <> struct Preprocess<kNeon> {
     vst1q_s8(&dst[15*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
 
     // clang-format on
-  }
-
-  // Specialization for int8_t
-  static void transpose(const int8_t *input, Index rows, Index cols,
-                        int8_t *output) {
-    constexpr size_t tile_size = 16;
-    // TODO(jerin): Enable
-    // assert(rows % tile_size == 0 && cols & tile_size == 0);
-    for (size_t i = 0; i < rows; i += tile_size) {
-      for (size_t j = 0; j < cols; j += tile_size) {
-        _transpose_16x16(input, i, j, rows, cols, output);
-      }
-    }
   }
 
   static void unquantizeAddBias(const int32_t *input,
