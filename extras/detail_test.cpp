@@ -138,6 +138,12 @@ TEST(PreprocOnARM, TransposeDriver) {
 
   std::cout << "tgt:\n";
   print(dst);
+
+  for (size_t i = 0; i < tile; i++) {
+    for (size_t j = 0; j < tile; j++) {
+      ASSERT_EQ(src[i * tile + j], dst[j * tile + i]);
+    }
+  }
 }
 
 } // namespace
