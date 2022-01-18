@@ -160,6 +160,103 @@ template <> struct Preprocess<kNeon> {
     // clang-format on
   }
 
+  static void transpose_16x16(const int8_t *src, int8_t *dst) {
+    // clang-format off
+    constexpr size_t width = 16;
+
+    int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*width]), vld1q_s8(&src[ 1*width]));
+    int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*width]), vld1q_s8(&src[ 3*width]));
+    int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*width]), vld1q_s8(&src[ 5*width]));
+    int8x16x2_t r3 = vtrnq_s8(vld1q_s8(&src[ 6*width]), vld1q_s8(&src[ 7*width]));
+    int8x16x2_t r4 = vtrnq_s8(vld1q_s8(&src[ 8*width]), vld1q_s8(&src[ 9*width]));
+    int8x16x2_t r5 = vtrnq_s8(vld1q_s8(&src[10*width]), vld1q_s8(&src[11*width]));
+    int8x16x2_t r6 = vtrnq_s8(vld1q_s8(&src[12*width]), vld1q_s8(&src[13*width]));
+    int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*width]), vld1q_s8(&src[15*width]));
+
+
+    vst1q_s8(&dst[ 0*width], (r0.val[0]));
+    vst1q_s8(&dst[ 2*width], (r1.val[0]));
+    vst1q_s8(&dst[ 4*width], (r2.val[0]));
+    vst1q_s8(&dst[ 6*width], (r3.val[0]));
+    vst1q_s8(&dst[ 8*width], (r4.val[0]));
+    vst1q_s8(&dst[10*width], (r5.val[0]));
+    vst1q_s8(&dst[12*width], (r6.val[0]));
+    vst1q_s8(&dst[14*width], (r7.val[0]));
+
+    vst1q_s8(&dst[ 1*width], (r0.val[1]));
+    vst1q_s8(&dst[ 3*width], (r1.val[1]));
+    vst1q_s8(&dst[ 5*width], (r2.val[1]));
+    vst1q_s8(&dst[ 7*width], (r3.val[1]));
+    vst1q_s8(&dst[ 9*width], (r4.val[1]));
+    vst1q_s8(&dst[11*width], (r5.val[1]));
+    vst1q_s8(&dst[13*width], (r6.val[1]));
+    vst1q_s8(&dst[15*width], (r7.val[1]));
+
+    // return;
+
+
+    int16_t *dst_r = reinterpret_cast<int16_t*>(dst);
+    constexpr int width_8 = 8;
+
+    // Elements are 8-bit and transposed. We now go for double the width.
+    // Previously load instructions existed here. All we have to do is keep the
+    // right registers.
+    
+    int16x8x2_t t0 = vtrnq_s16(vreinterpretq_s16_s8(r0.val[0]), vreinterpretq_s16_s8(r1.val[0]));
+    int16x8x2_t t1 = vtrnq_s16(vreinterpretq_s16_s8(r2.val[0]), vreinterpretq_s16_s8(r3.val[0]));
+    int16x8x2_t t2 = vtrnq_s16(vreinterpretq_s16_s8(r4.val[0]), vreinterpretq_s16_s8(r5.val[0]));
+    int16x8x2_t t3 = vtrnq_s16(vreinterpretq_s16_s8(r6.val[0]), vreinterpretq_s16_s8(r7.val[0]));
+    int16x8x2_t t4 = vtrnq_s16(vreinterpretq_s16_s8(r0.val[1]), vreinterpretq_s16_s8(r1.val[1]));
+    int16x8x2_t t5 = vtrnq_s16(vreinterpretq_s16_s8(r2.val[1]), vreinterpretq_s16_s8(r3.val[1]));
+    int16x8x2_t t6 = vtrnq_s16(vreinterpretq_s16_s8(r4.val[1]), vreinterpretq_s16_s8(r5.val[1]));
+    int16x8x2_t t7 = vtrnq_s16(vreinterpretq_s16_s8(r6.val[1]), vreinterpretq_s16_s8(r7.val[1]));
+    
+
+    vst1q_s8(&dst[0*width], vreinterpretq_s8_s16(t0.val[0]));
+    vst1q_s8(&dst[1*width], vreinterpretq_s8_s16(t4.val[0]));
+
+    vst1q_s8(&dst[2*width], vreinterpretq_s8_s16(t0.val[1]));
+    vst1q_s8(&dst[3*width], vreinterpretq_s8_s16(t4.val[1]));
+
+    vst1q_s8(&dst[4*width], vreinterpretq_s8_s16(t1.val[0]));
+    vst1q_s8(&dst[5*width], vreinterpretq_s8_s16(t5.val[0]));
+
+    vst1q_s8(&dst[6*width], vreinterpretq_s8_s16(t1.val[1]));
+    vst1q_s8(&dst[7*width], vreinterpretq_s8_s16(t5.val[1]));
+
+    vst1q_s8(&dst[8*width], vreinterpretq_s8_s16(t2.val[0]));
+    vst1q_s8(&dst[9*width], vreinterpretq_s8_s16(t6.val[0]));
+
+    vst1q_s8(&dst[10*width], vreinterpretq_s8_s16(t2.val[1]));
+    vst1q_s8(&dst[11*width], vreinterpretq_s8_s16(t6.val[1]));
+
+    vst1q_s8(&dst[12*width], vreinterpretq_s8_s16(t3.val[0]));
+    vst1q_s8(&dst[13*width], vreinterpretq_s8_s16(t7.val[0]));
+
+    vst1q_s8(&dst[14*width], vreinterpretq_s8_s16(t3.val[1]));
+    vst1q_s8(&dst[15*width], vreinterpretq_s8_s16(t7.val[1]));
+
+    return;
+
+    int32x4x2_t x0 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[0]), vreinterpretq_s32_s16(t1.val[0]));
+    int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[0]), vreinterpretq_s32_s16(t3.val[0]));
+    int32x4x2_t x2 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[1]), vreinterpretq_s32_s16(t1.val[1]));
+    int32x4x2_t x3 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
+
+    /*
+    vst1q_s16(&dst_r[0*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[0]), vget_low_s32(x1.val[0]))));
+    vst1q_s16(&dst_r[1*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[0]), vget_low_s32(x3.val[0]))));
+    vst1q_s16(&dst_r[2*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x0.val[1]), vget_low_s32(x1.val[1]))));
+    vst1q_s16(&dst_r[3*width_8], vreinterpretq_s16_s32(vcombine_s32( vget_low_s32(x2.val[1]), vget_low_s32(x3.val[1]))));
+    vst1q_s16(&dst_r[4*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x1.val[0]))));
+    vst1q_s16(&dst_r[5*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x3.val[0]))));
+    vst1q_s16(&dst_r[6*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x1.val[1]))));
+    vst1q_s16(&dst_r[7*width_8], vreinterpretq_s16_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x3.val[1]))));
+    */
+
+    // clang-format on
+  }
+
   // Specialization for int8_t
   static void transpose(const int8_t *input, Index rows, Index cols,
                         int8_t *output) {}
