@@ -132,8 +132,9 @@ template <> struct Preprocess<kNeon> {
   template <class Scalar>
   static void transpose(const Scalar *input, Index rows, Index cols,
                         Scalar *output) {
-    // We're fixing this.. are we?
-    return;
+    // This is a template with an abort. The specialized implementation is done
+    // below for int8_t.
+    std::abort();
   }
 
   static void _transpose_16x16(const int8_t *src, Index i, Index j, Index rows,
