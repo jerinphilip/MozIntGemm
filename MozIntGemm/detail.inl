@@ -164,16 +164,16 @@ template <> struct Preprocess<kNeon> {
     
     // Permute 8 8-bit rows.
     // Load int8x16x2 from memory into SIMD registers, transpose as 2x2 matrices.
-    Index rowBegin = i*cols + j;
 
-    int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*cols + rowBegin]), vld1q_s8(&src[ 1*cols + rowBegin]));
-    int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*cols + rowBegin]), vld1q_s8(&src[ 3*cols + rowBegin]));
-    int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*cols + rowBegin]), vld1q_s8(&src[ 5*cols + rowBegin]));
-    int8x16x2_t r3 = vtrnq_s8(vld1q_s8(&src[ 6*cols + rowBegin]), vld1q_s8(&src[ 7*cols + rowBegin]));
-    int8x16x2_t r4 = vtrnq_s8(vld1q_s8(&src[ 8*cols + rowBegin]), vld1q_s8(&src[ 9*cols + rowBegin]));
-    int8x16x2_t r5 = vtrnq_s8(vld1q_s8(&src[10*cols + rowBegin]), vld1q_s8(&src[11*cols + rowBegin]));
-    int8x16x2_t r6 = vtrnq_s8(vld1q_s8(&src[12*cols + rowBegin]), vld1q_s8(&src[13*cols + rowBegin]));
-    int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*cols + rowBegin]), vld1q_s8(&src[15*cols + rowBegin]));
+    Index srcRowBegin = i*cols + j;
+    int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*cols + srcRowBegin]), vld1q_s8(&src[ 1*cols + srcRowBegin]));
+    int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*cols + srcRowBegin]), vld1q_s8(&src[ 3*cols + srcRowBegin]));
+    int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*cols + srcRowBegin]), vld1q_s8(&src[ 5*cols + srcRowBegin]));
+    int8x16x2_t r3 = vtrnq_s8(vld1q_s8(&src[ 6*cols + srcRowBegin]), vld1q_s8(&src[ 7*cols + srcRowBegin]));
+    int8x16x2_t r4 = vtrnq_s8(vld1q_s8(&src[ 8*cols + srcRowBegin]), vld1q_s8(&src[ 9*cols + srcRowBegin]));
+    int8x16x2_t r5 = vtrnq_s8(vld1q_s8(&src[10*cols + srcRowBegin]), vld1q_s8(&src[11*cols + srcRowBegin]));
+    int8x16x2_t r6 = vtrnq_s8(vld1q_s8(&src[12*cols + srcRowBegin]), vld1q_s8(&src[13*cols + srcRowBegin]));
+    int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*cols + srcRowBegin]), vld1q_s8(&src[15*cols + srcRowBegin]));
 
 
     // Permute 8 16-bit rows.
@@ -202,24 +202,24 @@ template <> struct Preprocess<kNeon> {
 
     // There is no permute 8 64-bit rows available. 
     // Instead we follow extracting low and high and placing them into the right places.
-    Index tgtRowBegin = j*rows + i;
-    vst1q_s8(&dst[ 0*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x0.val[0]),  vget_low_s32(x4.val[0])))); 
-    vst1q_s8(&dst[ 1*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x1.val[0]),  vget_low_s32(x5.val[0]))));
-    vst1q_s8(&dst[ 2*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x2.val[0]),  vget_low_s32(x6.val[0]))));
-    vst1q_s8(&dst[ 3*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x3.val[0]),  vget_low_s32(x7.val[0]))));
-    vst1q_s8(&dst[ 4*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x0.val[1]),  vget_low_s32(x4.val[1]))));
-    vst1q_s8(&dst[ 5*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x1.val[1]),  vget_low_s32(x5.val[1]))));
-    vst1q_s8(&dst[ 6*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x2.val[1]),  vget_low_s32(x6.val[1]))));
-    vst1q_s8(&dst[ 7*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x3.val[1]),  vget_low_s32(x7.val[1]))));
+    Index dstRowBegin = j*rows + i;
+    vst1q_s8(&dst[ 0*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x0.val[0]),  vget_low_s32(x4.val[0])))); 
+    vst1q_s8(&dst[ 1*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x1.val[0]),  vget_low_s32(x5.val[0]))));
+    vst1q_s8(&dst[ 2*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x2.val[0]),  vget_low_s32(x6.val[0]))));
+    vst1q_s8(&dst[ 3*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x3.val[0]),  vget_low_s32(x7.val[0]))));
+    vst1q_s8(&dst[ 4*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x0.val[1]),  vget_low_s32(x4.val[1]))));
+    vst1q_s8(&dst[ 5*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x1.val[1]),  vget_low_s32(x5.val[1]))));
+    vst1q_s8(&dst[ 6*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x2.val[1]),  vget_low_s32(x6.val[1]))));
+    vst1q_s8(&dst[ 7*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32( vget_low_s32(x3.val[1]),  vget_low_s32(x7.val[1]))));
 
-    vst1q_s8(&dst[ 8*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x4.val[0]))));
-    vst1q_s8(&dst[ 9*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x5.val[0]))));
-    vst1q_s8(&dst[10*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x6.val[0]))));
-    vst1q_s8(&dst[11*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[0]), vget_high_s32(x7.val[0]))));
-    vst1q_s8(&dst[12*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x4.val[1]))));
-    vst1q_s8(&dst[13*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x5.val[1]))));
-    vst1q_s8(&dst[14*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x6.val[1]))));
-    vst1q_s8(&dst[15*rows + tgtRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
+    vst1q_s8(&dst[ 8*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[0]), vget_high_s32(x4.val[0]))));
+    vst1q_s8(&dst[ 9*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[0]), vget_high_s32(x5.val[0]))));
+    vst1q_s8(&dst[10*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[0]), vget_high_s32(x6.val[0]))));
+    vst1q_s8(&dst[11*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[0]), vget_high_s32(x7.val[0]))));
+    vst1q_s8(&dst[12*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x0.val[1]), vget_high_s32(x4.val[1]))));
+    vst1q_s8(&dst[13*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x1.val[1]), vget_high_s32(x5.val[1]))));
+    vst1q_s8(&dst[14*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x2.val[1]), vget_high_s32(x6.val[1]))));
+    vst1q_s8(&dst[15*rows + dstRowBegin], vreinterpretq_s8_s32(vcombine_s32(vget_high_s32(x3.val[1]), vget_high_s32(x7.val[1]))));
 
     // clang-format on
   }
