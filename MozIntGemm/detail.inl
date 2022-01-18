@@ -137,8 +137,20 @@ template <> struct Preprocess<kNeon> {
   }
 
   static void transpose_16x16(const int8_t *src, int8_t *dst) {
+    // Implemented following the algorithm described in
+    // https://stackoverflow.com/a/29587984/4565794
+    //
+    // permute n 32-bit rows
+    // permute n 64-bit rows
+    // ...
+    // permute n simd_width/2-bit rows
+
     constexpr size_t width = 16;
+
     // clang-format off
+    
+    // Permute 8 8-bit rows.
+    // Load int8x16x2 from memory into SIMD registers, transpose as 2x2 matrices.
     int8x16x2_t r0 = vtrnq_s8(vld1q_s8(&src[ 0*width]), vld1q_s8(&src[ 1*width]));
     int8x16x2_t r1 = vtrnq_s8(vld1q_s8(&src[ 2*width]), vld1q_s8(&src[ 3*width]));
     int8x16x2_t r2 = vtrnq_s8(vld1q_s8(&src[ 4*width]), vld1q_s8(&src[ 5*width]));
@@ -149,6 +161,10 @@ template <> struct Preprocess<kNeon> {
     int8x16x2_t r7 = vtrnq_s8(vld1q_s8(&src[14*width]), vld1q_s8(&src[15*width]));
 
 
+    // Permute 8 16-bit rows.
+    // Next step is to treat the entries as int16x8x2 (via cast) and do
+    // transpose for int16, which will now leave intra-2 pairs intact while
+    // transposing inter 2-pairs into the right places.
     int16x8x2_t t0 = vtrnq_s16(vreinterpretq_s16_s8(r0.val[0]), vreinterpretq_s16_s8(r1.val[0]));
     int16x8x2_t t1 = vtrnq_s16(vreinterpretq_s16_s8(r2.val[0]), vreinterpretq_s16_s8(r3.val[0]));
     int16x8x2_t t2 = vtrnq_s16(vreinterpretq_s16_s8(r4.val[0]), vreinterpretq_s16_s8(r5.val[0]));
@@ -157,8 +173,8 @@ template <> struct Preprocess<kNeon> {
     int16x8x2_t t5 = vtrnq_s16(vreinterpretq_s16_s8(r2.val[1]), vreinterpretq_s16_s8(r3.val[1]));
     int16x8x2_t t6 = vtrnq_s16(vreinterpretq_s16_s8(r4.val[1]), vreinterpretq_s16_s8(r5.val[1]));
     int16x8x2_t t7 = vtrnq_s16(vreinterpretq_s16_s8(r6.val[1]), vreinterpretq_s16_s8(r7.val[1]));
-    
 
+    // Permute 8 32-bit rows.
     int32x4x2_t x0 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[0]), vreinterpretq_s32_s16(t1.val[0]));
     int32x4x2_t x1 = vtrnq_s32(vreinterpretq_s32_s16(t4.val[0]), vreinterpretq_s32_s16(t5.val[0]));
     int32x4x2_t x2 = vtrnq_s32(vreinterpretq_s32_s16(t0.val[1]), vreinterpretq_s32_s16(t1.val[1]));
@@ -169,6 +185,8 @@ template <> struct Preprocess<kNeon> {
     int32x4x2_t x6 = vtrnq_s32(vreinterpretq_s32_s16(t2.val[1]), vreinterpretq_s32_s16(t3.val[1]));
     int32x4x2_t x7 = vtrnq_s32(vreinterpretq_s32_s16(t6.val[1]), vreinterpretq_s32_s16(t7.val[1]));
 
+    // There is no permute 8 64-bit rows available. 
+    // Instead we follow extracting low and high and placing them into the right places.
     vst1q_s8(&dst[0*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x0.val[0]), vget_low_s32(x4.val[0])))); 
     vst1q_s8(&dst[1*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x1.val[0]), vget_low_s32(x5.val[0]))));
     vst1q_s8(&dst[2*width], vreinterpretq_s8_s32(vcombine_s32(vget_low_s32(x2.val[0]), vget_low_s32(x6.val[0]))));
