@@ -51,6 +51,6 @@ endif(COMPILE_TESTS)
 
 add_subdirectory(MozIntGemm)
 
-if(COMPILE_TESTS))
+if(COMPILE_TESTS)
     add_subdirectory(extras)
 endif(COMPILE_TESTS)
