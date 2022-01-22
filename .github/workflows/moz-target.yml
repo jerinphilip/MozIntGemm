@@ -50,11 +50,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.ccache_dir }}
-          key: ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
+          key: ccache-${{ job.name }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
           restore-keys: |-
-            ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
-            ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}
-            ccache-${{ matrix.identifier }}
+            ccache-${{ job.name }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
+            ccache-${{ job.name }}-${{ steps.ccache_vars.outputs.hash }}
+            ccache-${{ job.name }}
       - name: ccache environment setup
         run: |-
           echo "CCACHE_COMPILER_CHECK=${{ env.ccache_compilercheck }}" >> $GITHUB_ENV
@@ -107,11 +107,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.ccache_dir }}
-          key: ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
+          key: ccache-${{ job.name }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
           restore-keys: |-
-            ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
-            ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}
-            ccache-${{ matrix.identifier }}
+            ccache-${{ job.name }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
+            ccache-${{ job.name }}-${{ steps.ccache_vars.outputs.hash }}
+            ccache-${{ job.name }}
 
       - name: ccache environment setup
         run: |-
