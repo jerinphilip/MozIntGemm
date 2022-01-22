@@ -1,0 +1,197 @@
+name: "Strip for gecko-dev"
+'on':
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - '**'
+
+env:
+  ccache_basedir: ${{ github.workspace }}
+  ccache_dir: "${{ github.workspace }}/.ccache"
+  ccache_compilercheck: content
+  ccache_compress: 'true'
+  ccache_compresslevel: 9
+  ccache_maxsize: 200M
+  ccache_cmake: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+
+jobs:
+    x86:
+      name: "x86"
+      runs-on: "ubuntu-latest"
+      steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Install Dependencies
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgoogle-perftools-dev libprotobuf-dev protobuf-compiler \
+            libboost-all-dev ccache
+
+      - name: Install MKL
+        run: |-
+          wget -qO- "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB" | sudo apt-key add -
+          sudo sh -c "echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list"
+          sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
+          sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
+      - name: Generate ccache_vars for ccache based on machine
+        shell: bash
+        id: ccache_vars
+        run: |-
+          echo "::set-output name=hash::$(echo ${{ env.ccache_compilercheck }})"
+          echo "::set-output name=timestamp::$(date '+%Y-%m-%dT%H.%M.%S')"
+      - name: Cache-op for build-cache through ccache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.ccache_dir }}
+          key: ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
+          restore-keys: |-
+            ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
+            ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}
+            ccache-${{ matrix.identifier }}
+      - name: ccache environment setup
+        run: |-
+          echo "CCACHE_COMPILER_CHECK=${{ env.ccache_compilercheck }}" >> $GITHUB_ENV
+          echo "CCACHE_BASEDIR=${{ env.ccache_basedir }}" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESS=${{ env.ccache_compress }}" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESSLEVEL=${{ env.ccache_compresslevel }}" >> $GITHUB_ENV
+          echo "CCACHE_DIR=${{ env.ccache_dir }}" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=${{ env.ccache_maxsize }}" >> $GITHUB_ENV
+      - name: ccache prolog
+        run: |-
+          ccache -s # Print current cache stats
+          ccache -z # Zero cache entry
+      - name: cmake
+        run: |-
+          mkdir -p build
+          cd build
+          cmake -L .. -DCOMPILE_TESTS=on -DCOMPILE_BENCHMARKS=on ${{ env.ccache_cmake }}
+      - name: Build from source
+        working-directory: build
+        run: make -j2
+      - name: ccache epilog
+        run: 'ccache -s # Print current cache stats'
+      - name: Run unit tests
+        working-directory: build
+        run: ctest
+
+  ubuntu:
+    name: "arm"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install prerequisites
+      run: |
+          wget -c --quiet https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
+          unzip -qq android-ndk-r23b-linux.zip
+          sudo apt-get -y install ccache cmake
+
+    - name: Generate ccache_vars for ccache based on machine
+      shell: bash
+      id: ccache_vars
+      run: |-
+        echo "::set-output name=hash::$(echo ${{ env.ccache_compilercheck }})"
+        echo "::set-output name=timestamp::$(date '+%Y-%m-%dT%H.%M.%S')"
+    - name: Cache-op for build-cache through ccache
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.ccache_dir }}
+        key: ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
+        restore-keys: |-
+          ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
+          ccache-${{ matrix.identifier }}-${{ steps.ccache_vars.outputs.hash }}
+          ccache-${{ matrix.identifier }}
+
+    - name: ccache environment setup
+      run: |-
+        echo "CCACHE_COMPILER_CHECK=${{ env.ccache_compilercheck }}" >> $GITHUB_ENV
+        echo "CCACHE_BASEDIR=${{ env.ccache_basedir }}" >> $GITHUB_ENV
+        echo "CCACHE_COMPRESS=${{ env.ccache_compress }}" >> $GITHUB_ENV
+        echo "CCACHE_COMPRESSLEVEL=${{ env.ccache_compresslevel }}" >> $GITHUB_ENV
+        echo "CCACHE_DIR=${{ env.ccache_dir }}" >> $GITHUB_ENV
+        echo "CCACHE_MAXSIZE=${{ env.ccache_maxsize }}" >> $GITHUB_ENV
+
+    - name: ccache prolog
+      run: |-
+        ccache -s # Print current cache stats
+        ccache -z # Zero cache entry
+
+    - name: Generate buildfiles for marian on android via cmake
+      run: |-
+        mkdir -p build 
+        cd build
+
+        NDK="${{ github.workspace }}/android-ndk-r23b"
+        ABI="arm64-v8a"
+        MINSDK_VERSION=28
+        ANDROID_PLATFORM=28
+
+        LEMONADE_ARGS=(
+            -DCOMPILE_TESTS=OFF
+            -DCOMPILE_BENCHMARKS=ON
+        )
+
+
+        OTHER_ANDROID_ARGS=(
+            -DANDROID_ARM_NEON=TRUE
+        )
+
+        OTHER_MARIAN_ARGS=(
+            -DCMAKE_HAVE_THREADS_LIBRARY=1
+            -DCMAKE_USE_WIN32_THREADS_INIT=0
+            -DCMAKE_USE_PTHREADS_INIT=1
+            -DTHREADS_PREFER_PTHREAD_FLAG=ON
+            -DBUILD_ARCH=armv8-a
+        )
+
+        cmake \
+            -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
+            -DANDROID_TOOLCHAIN=clang \
+            -DANDROID_ABI=$ABI \
+            -DANDROID_PLATFORM=$ANDROID_PLATFORM \
+            -DANDROID_NATIVE_API_LEVEL=$MINSDKVERSION \
+            -DANDROID_TOOLCHAIN_NAME=arm-linux-androideabi-4.8 \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            "${OTHER_ANDROID_ARGS[@]}" "${OTHER_MARIAN_ARGS[@]}" "${LEMONADE_ARGS[@]}" \
+            ..
+
+    - name : Build library for android
+      working-directory: build
+      run: |-
+          make -j2
+
+    - name: ccache epilog
+      run: 'ccache -s # Print current cache stats'
+
+
+  # Try to upload a release using https://github.com/marvinpinto/actions/issues/177#issuecomment-917605585 as a model
+    release-latest:
+      name: Release Latest Build
+      runs-on: ubuntu-latest
+      needs: [x86, arm]
+      # if: github.ref == 'refs/heads/master'
+      steps:
+       - name: Download artifacts
+         uses: actions/download-artifact@v2
+  
+       - name: Update GitHub prerelease
+         uses: marvinpinto/action-automatic-releases@latest
+         with:
+           repo_token: ${{ secrets.GITHUB_TOKEN }}
+           automatic_release_tag: latest
+           prerelease: true
+           title: "Latest Build"
+           files: |
+                  ${{github.workspace}}/artifact/*.whl
