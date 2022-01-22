@@ -71,15 +71,12 @@ jobs:
         run: |-
           mkdir -p build
           cd build
-          cmake -L .. -DCOMPILE_TESTS=on -DCOMPILE_BENCHMARKS=on ${{ env.ccache_cmake }}
+          cmake -L .. -DCOMPILE_TESTS=OFF -DCOMPILE_BENCHMARKS=OFF ${{ env.ccache_cmake }}
       - name: Build from source
         working-directory: build
         run: make -j2
       - name: ccache epilog
         run: 'ccache -s # Print current cache stats'
-      - name: Run unit tests
-        working-directory: build
-        run: ctest
 
     arm:
       name: "arm"
