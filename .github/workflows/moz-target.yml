@@ -81,7 +81,7 @@ jobs:
         working-directory: build
         run: ctest
 
-    ubuntu:
+    arm:
       name: "arm"
       runs-on: ubuntu-latest
 
