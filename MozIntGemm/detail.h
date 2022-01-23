@@ -1,3 +1,4 @@
+#pragma once
 #include "moz_intgemm.h"
 #include "ruy/platform.h"
 #include "ruy/system_aligned_alloc.h"
