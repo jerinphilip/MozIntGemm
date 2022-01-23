@@ -66,7 +66,7 @@ using NEON intrinsics which covers source-code added here as preprocessing
 functions (quantize, unquantize, transpose).
 
 
-## LICENSE
+## License
 
 The additions here are MIT Licensed. Respective licenses provided by original
 source in submodules inside [3rd-party/](./3rd-party) apply.
