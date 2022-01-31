@@ -29,9 +29,14 @@ set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointe
 option(COMPILE_BENCHMARKS "Compile benchmarks." OFF)
 option(COMPILE_TESTS "Compile tests." OFF)
 
+# Copied from cpuinfo.  See 3rd-party/ruy/third_party/cpuinfo/LICENSE
+# -- [ Determine target processor
+SET(CPUINFO_TARGET_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_OSX_ARCHITECTURES MATCHES "^(x86_64|arm64)$")
+  SET(CPUINFO_TARGET_PROCESSOR "${CMAKE_OSX_ARCHITECTURES}")
+ENDIF()
 
-message(${CMAKE_SYSTEM_PROCESSOR})
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+IF(CPUINFO_TARGET_PROCESSOR MATCHES "^(armv[5-8].*|aarch64|arm64)$" OR IOS_ARCH MATCHES "^(armv7.*|arm64.*)$")
   set(BUILD_ARCH_ARM ON)
 else()
   set(BUILD_ARCH_ARM OFF)
@@ -42,7 +47,7 @@ add_subdirectory(3rd-party)
 if(BUILD_ARCH_ARM)
     set(EXT_LIBS cpuinfo ruy)
 else() 
-    set(EXT_LIBS cpuinfo ruy intgemm)
+    set(EXT_LIBS cpuinfo intgemm)
 endif()
 
 if(COMPILE_TESTS)
