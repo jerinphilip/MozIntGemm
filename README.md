@@ -1,8 +1,8 @@
 # MozIntGemm
 
 
-![armv8](https://github.com/jerinphilip/MozIntGemm/actions/workflows/arm-compiles.yml/badge.svg)
-![x86-tests](https://github.com/jerinphilip/MozIntGemm/actions/workflows/tests.yml/badge.svg)
+![armv8](https://github.com/browsermt/MozIntGemm/actions/workflows/arm-compiles.yml/badge.svg)
+![x86-tests](https://github.com/browsermt/MozIntGemm/actions/workflows/tests.yml/badge.svg)
 
 Formerly arm-playground.
 
