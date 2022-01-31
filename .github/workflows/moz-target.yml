@@ -3,6 +3,7 @@ name: "Strip for gecko-dev"
   push:
     branches:
       - main
+      - master
     tags:
       - "v*.*.*"
   pull_request:
@@ -22,6 +23,7 @@ jobs:
     x86:
       name: "x86"
       runs-on: "ubuntu-latest"
+      if: false
       steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -186,11 +188,33 @@ jobs:
     release-latest:
       name: Release Latest Build
       runs-on: ubuntu-latest
-      needs: [x86, arm]
-      # if: github.ref == 'refs/heads/master'
+      needs: [arm]
+      if: github.ref == 'refs/heads/master'
+      permissions:
+        id-token: "write"
+        contents: "write"
+        packages: "write"
+        pull-requests: "read"
+
       steps:
-       - name: Download artifacts
-         uses: actions/download-artifact@v2
+       - name: Checkout
+         uses: actions/checkout@v2
+         with:
+           submodules: recursive
+
+       - name: Strip unnecessary sources
+         run: |
+             bash tools/strip.sh
+       # Additionally remove .github only and .git folders.
+       - name: "Strip other files: .git, .github"
+         run: |
+             rm -rv .github
+             find . -iname ".git"  | xargs -I% rm -rfv %
+             find . -iname ".gitmodules" | xargs -I% rm -rfv %
+
+       - name: Create source-tarball
+         run: |
+             (cd ../ && tar cvzf /tmp/MozIntGemm.tar.gz MozIntGemm)
   
        - name: Update GitHub prerelease
          uses: marvinpinto/action-automatic-releases@latest
@@ -200,4 +224,4 @@ jobs:
            prerelease: true
            title: "Latest Build"
            files: |
-                  ${{github.workspace}}/artifact/*.whl
+               /tmp/MozIntGemm.tar.gz
