@@ -46,7 +46,9 @@ add_subdirectory(3rd-party)
 
 if(BUILD_ARCH_ARM)
     set(EXT_LIBS cpuinfo ruy)
-else() 
+  elseif(COMPILE_TESTS) 
+    set(EXT_LIBS cpuinfo ruy intgemm)
+else()
     set(EXT_LIBS cpuinfo intgemm)
 endif()
 
