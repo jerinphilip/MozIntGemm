@@ -86,9 +86,7 @@ void int8MultiplyAndAddBias(const int8_t *input_A_prepared, float scale_A,
   ruy::MakeSimpleLayout(rows_A, cols_B, ruy::Order::kRowMajor,
                         dst.mutable_layout());
 
-  detail::AlignedVector<std::int32_t> dst_data(rows_A * cols_B);
-  std::int32_t *dest_ptr = dst_data.data();
-
+  std::int32_t *dest_ptr = reinterpret_cast<std::int32_t *>(output);
   dst.set_data(dest_ptr);
 
   // When Dst is int32, mul_params is unused.
