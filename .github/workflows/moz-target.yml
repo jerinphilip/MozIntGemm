@@ -253,12 +253,12 @@ jobs:
          run: |
              (cd ../ && tar cvzf /tmp/MozIntGemm.tar.gz MozIntGemm)
   
-       - name: Update GitHub prerelease
+       - name: Update GitHub release
          uses: marvinpinto/action-automatic-releases@latest
          with:
            repo_token: ${{ secrets.GITHUB_TOKEN }}
            automatic_release_tag: ${{ github.ref_name }}
-           prerelease: true
+           prerelease: false
            title: "${{ github.ref_name }}"
            files: |
                /tmp/MozIntGemm.tar.gz
